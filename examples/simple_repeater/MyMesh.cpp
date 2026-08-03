@@ -68,7 +68,8 @@
 #define LOON_ANNOUNCE_HOURLY         1
 #define LOON_ANNOUNCE_DAILY          2
 #define LOON_VALID_CLOCK             1700000000UL
-#define LOON_PING_MIN_INTERVAL_MS    10000UL
+#define LOON_COMMAND_COOLDOWN_MS     10000UL
+#define LOON_COMMAND_SENDER_SLOTS    8
 #define LOON_MAX_ANNOUNCEMENT_TEXT   (MAX_PACKET_PAYLOAD - CIPHER_BLOCK_SIZE - 5)
 
 static const uint8_t LOON_PUBLIC_SECRET[16] = {
@@ -133,29 +134,6 @@ static bool loonCommandIs(const char* body, const char* command) {
   body += n;
   while (*body == ' ') body++;
   return *body == 0;
-}
-
-static bool parseLoonRoll(const char* body, uint8_t& dice, uint16_t& sides) {
-  while (*body == ' ') body++;
-  if (strncasecmp(body, "!roll", 5) != 0) return false;
-  body += 5;
-  if (*body != 0 && *body != ' ') return false;
-  while (*body == ' ') body++;
-  if (*body == 0) {
-    dice = 1;
-    sides = 6;
-    return true;
-  }
-
-  unsigned parsed_dice = 0;
-  unsigned parsed_sides = 0;
-  char trailing = 0;
-  if (sscanf(body, "%ud%u %c", &parsed_dice, &parsed_sides, &trailing) != 2 &&
-      sscanf(body, "%uD%u %c", &parsed_dice, &parsed_sides, &trailing) != 2) return false;
-  if (parsed_dice < 1 || parsed_dice > 10 || parsed_sides < 2 || parsed_sides > 100) return false;
-  dice = (uint8_t)parsed_dice;
-  sides = (uint16_t)parsed_sides;
-  return true;
 }
 
 static const char* loonModeName(uint8_t mode) {
@@ -729,36 +707,42 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   bool is_ping = loonCommandIs(body, "!ping");
   bool is_help = loonCommandIs(body, "!help");
   bool is_about = loonCommandIs(body, "!about");
-  uint8_t roll_dice = 0;
-  uint16_t roll_sides = 0;
-  bool is_roll = !is_public && parseLoonRoll(body, roll_dice, roll_sides);
+  bool is_roll = !is_public && loonCommandIs(body, "!roll");
   if (!is_ping && !is_help && !is_about && !is_roll) return;
   bool enabled = is_public ? loon_prefs.ping_public : loon_prefs.ping_test;
   if (!enabled) return;
   unsigned long now = millis();
-  if (loon_last_command_at && (uint32_t)(now - loon_last_command_at) < LOON_PING_MIN_INTERVAL_MS) return;
-  if (strcmp(sender, loon_last_command_sender) == 0 && loon_last_command_at &&
-      (uint32_t)(now - loon_last_command_at) < 60000UL) return;
-  StrHelper::strncpy(loon_last_command_sender, sender, sizeof(loon_last_command_sender));
-  loon_last_command_at = now;
+  uint32_t sender_hash = calcLoonChecksum(sender, strlen(sender));
+  uint8_t sender_slot = 0;
+  unsigned long oldest_time = ~0UL;
+  for (uint8_t i = 0; i < LOON_COMMAND_SENDER_SLOTS; i++) {
+    if (loon_command_sender_hashes[i] == sender_hash && loon_command_sender_times[i]) {
+      if ((uint32_t)(now - loon_command_sender_times[i]) < LOON_COMMAND_COOLDOWN_MS) return;
+      sender_slot = i;
+      oldest_time = 0;
+      break;
+    }
+    if (!loon_command_sender_times[i]) {
+      sender_slot = i;
+      oldest_time = 0;
+      break;
+    }
+    if (loon_command_sender_times[i] < oldest_time) {
+      oldest_time = loon_command_sender_times[i];
+      sender_slot = i;
+    }
+  }
+  loon_command_sender_hashes[sender_slot] = sender_hash;
+  loon_command_sender_times[sender_slot] = now ? now : 1;
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
     sendLoonReply(channel, is_public ? "Commands: !ping, !help, !about"
-                                     : "Commands: !ping, !roll [NdM], !help, !about");
+                                     : "Commands: !ping, !roll, !help, !about");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
-    int used = snprintf(result, sizeof(result), "🎲 @%s | %ud%u: ", sender,
-                        (unsigned)roll_dice, (unsigned)roll_sides);
-    uint32_t total = 0;
-    for (uint8_t i = 0; i < roll_dice && used > 0 && (size_t)used < sizeof(result); i++) {
-      uint32_t value = getRNG()->nextInt(1, (uint32_t)roll_sides + 1);
-      total += value;
-      used += snprintf(result + used, sizeof(result) - used, "%s%lu",
-                       i ? "+" : "", (unsigned long)value);
-    }
-    if (roll_dice > 1 && used > 0 && (size_t)used < sizeof(result))
-      snprintf(result + used, sizeof(result) - used, " = %lu", (unsigned long)total);
+    uint32_t value = getRNG()->nextInt(1, 7);
+    snprintf(result, sizeof(result), "🎲 @%s | 1d6: %lu", sender, (unsigned long)value);
     sendLoonReply(channel, result);
   } else {
     char about[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
@@ -1316,8 +1300,8 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
   resetLoonPrefs();
   loon_public_ready = loon_test_ready = false;
   loon_next_public_announcement = loon_next_test_announcement = 0;
-  loon_last_command_at = 0;
-  loon_last_command_sender[0] = 0;
+  memset(loon_command_sender_hashes, 0, sizeof(loon_command_sender_hashes));
+  memset(loon_command_sender_times, 0, sizeof(loon_command_sender_times));
   loon_busy_sample_at = loon_busy_tx_at = loon_busy_rx_at = 0;
   loon_busy_percent = 0;
 #endif

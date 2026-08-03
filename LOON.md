@@ -13,7 +13,7 @@ upstream MeshCore and keeps repeater operation as the highest priority.
 - Normal MeshCore repeating and authenticated repeater administration.
 - `!ping`, `!help`, and `!about` on Public and `#test` through the per-channel
   bot-command controls.
-- `!roll` with bounded `NdM` notation on `#test` only.
+- `!roll` for one six-sided die on `#test` only.
 - Scheduled announcements independently configurable for Public and `#test`.
 - Announcement cadence: off, hourly, or daily.
 - OLED repeater diagnostics.

@@ -121,8 +121,8 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   mesh::GroupChannel loon_public_channel, loon_test_channel;
   bool loon_public_ready, loon_test_ready;
   unsigned long loon_next_public_announcement, loon_next_test_announcement;
-  unsigned long loon_last_command_at;
-  char loon_last_command_sender[40];
+  uint32_t loon_command_sender_hashes[8];
+  unsigned long loon_command_sender_times[8];
   uint32_t loon_busy_sample_at, loon_busy_tx_at, loon_busy_rx_at;
   uint8_t loon_busy_percent;
 

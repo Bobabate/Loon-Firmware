@@ -34,15 +34,15 @@ The current source targets the original Heltec V3 with 8 MB flash and no PSRAM:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.1.3
+- Current release: v0.1.3. The `loon/main` source contains the next unreleased
+  command and cooldown changes; no replacement binary has been built yet.
 
 ## Features
 
 - Normal MeshCore repeater operation remains the priority.
 - `!ping`, `!help`, and `!about` operate on Public and `#test` through the
   existing per-channel command controls.
-- `!roll` and bounded dice notation (`!roll 2d6`) are available only on
-  `#test`; Public ignores them.
+- `!roll` rolls one six-sided die on `#test`; Public ignores it.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
 - Persistent Loon configuration survives reboot and firmware updates.
@@ -54,12 +54,11 @@ include a region or preset name.
 
 ## Bot commands
 
-Loon v0.1.3 supports these channel commands:
+The current source supports these channel commands:
 
 ```text
 !ping
 !roll
-!roll 2d6
 !help
 !about
 ```
@@ -70,16 +69,15 @@ entire message. Loon ignores its own messages.
 On `#test`, `!help` returns:
 
 ```text
-Commands: !ping, !roll [NdM], !help, !about
+Commands: !ping, !roll, !help, !about
 ```
 
 On Public, it returns `Commands: !ping, !help, !about`.
 
-`!roll` defaults to `1d6`. Dice notation accepts 1–10 dice with 2–100 sides.
-It is deliberately restricted to `#test` to avoid utility traffic on Public.
+`!roll` rolls one six-sided die. It is restricted to `#test`.
 
 ```text
-🎲 @[your-name] | 2d6: 3+5 = 8
+🎲 @[your-name] | 1d6: 4
 ```
 
 `!about` returns the firmware version and the standard MeshCore owner message:
@@ -115,8 +113,8 @@ hashes.
 
 Command rate protection:
 
-- At most one accepted bot command globally every 10 seconds.
-- The same sender is limited to one accepted bot command every 60 seconds.
+- Each sender is limited to one accepted bot command every 10 seconds.
+- One sender's cooldown does not block other senders.
 - Above the configured Busy threshold, the response is progressively delayed.
 - Repeater forwarding continues to take priority.
 
@@ -289,7 +287,7 @@ updates remain manageable.
 - Repeater advert appears on the mesh.
 - `!ping` on `#test` produces one reply.
 - `!help` lists commands available on its channel.
-- `!roll` and `!roll 2d6` work on `#test` and are ignored on Public.
+- `!roll` works on `#test` and is ignored on Public.
 - `!about` shows the firmware version and configured owner message.
 - A direct ping displays `Path direct`.
 - A routed ping displays the observed hop hashes.

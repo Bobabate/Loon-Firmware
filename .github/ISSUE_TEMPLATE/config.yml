@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/dchant/Loon-Firmware/security/advisories/new
+    about: Report security problems privately.
+  - name: Upstream MeshCore documentation
+    url: https://docs.meshcore.io
+    about: Help with standard MeshCore configuration and behaviour.

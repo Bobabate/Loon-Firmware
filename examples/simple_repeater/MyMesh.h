@@ -103,6 +103,43 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   unsigned long pending_discover_until;
   bool region_load_active;
   unsigned long dirty_contacts_expiry;
+#ifdef LOON_FIRMWARE
+  struct LoonPrefs {
+    uint32_t magic;
+    uint8_t version;
+    uint8_t ping_public;
+    uint8_t ping_test;
+    uint8_t announce_public; // 0=off, 1=hourly, 2=daily
+    uint8_t announce_test;
+    uint8_t daily_hour;
+    int16_t timezone_minutes;
+    uint8_t busy_threshold;
+    uint16_t max_busy_delay_secs;
+    char announcement_message[141];
+    uint32_t checksum;
+  } loon_prefs;
+  mesh::GroupChannel loon_public_channel, loon_test_channel;
+  bool loon_public_ready, loon_test_ready;
+  unsigned long loon_next_public_announcement, loon_next_test_announcement;
+  unsigned long loon_last_command_at;
+  char loon_last_command_sender[40];
+  uint32_t loon_busy_sample_at, loon_busy_tx_at, loon_busy_rx_at;
+  uint8_t loon_busy_percent;
+
+  void initLoonChannels();
+  void resetLoonPrefs();
+  void loadLoonPrefs();
+  void saveLoonPrefs();
+  uint32_t calcLoonPrefsChecksum() const;
+  uint8_t calcLoonBusyPercent();
+  uint32_t calcLoonBusyDelay(uint8_t busy) const;
+  void scheduleLoonAnnouncements();
+  unsigned long nextLoonAnnouncement(uint8_t mode) const;
+  void sendLoonAnnouncement(const mesh::GroupChannel& channel);
+  void sendLoonReply(const mesh::GroupChannel& channel, const char* text);
+  void sendLoonPing(const mesh::GroupChannel& channel, const char* sender, const mesh::Packet* packet);
+  bool isLoonChannel(const mesh::GroupChannel& channel, bool& is_public) const;
+#endif
 #if MAX_NEIGHBOURS
   NeighbourInfo neighbours[MAX_NEIGHBOURS];
 #endif
@@ -170,6 +207,10 @@ protected:
   void getPeerSharedSecret(uint8_t* dest_secret, int peer_idx) override;
   void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp, const uint8_t* app_data, size_t app_data_len);
   void onPeerDataRecv(mesh::Packet* packet, uint8_t type, int sender_idx, const uint8_t* secret, uint8_t* data, size_t len) override;
+#ifdef LOON_FIRMWARE
+  int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override;
+  void onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel& channel, uint8_t* data, size_t len) override;
+#endif
   bool onPeerPathRecv(mesh::Packet* packet, int sender_idx, const uint8_t* secret, uint8_t* path, uint8_t path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len) override;
   void onControlDataRecv(mesh::Packet* packet) override;
 

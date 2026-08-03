@@ -1,57 +1,55 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported versions
 
-Security fixes are applied to the latest release only. We do not backport
-fixes to older versions.
+Security fixes are applied to the latest supported Loon release and current
+development source. Experimental and diagnostic releases are unsupported.
 
-| Version | Supported |
-|---------|-----------|
-| 1.15+ | ✅ |
-| <1.15 | ❌ |
+| Version | Status |
+| --- | --- |
+| Current source | Supported for review and development |
+| All previously published binaries | Withdrawn; do not install |
 
-## Reporting a Vulnerability
+## Credentials and provisioning
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+Loon is public source code. Any password, key, or secret compiled into source
+or a release must be considered public. Change the administrator password
+before deploying a node and never reuse that password elsewhere.
 
-Use GitHub's private vulnerability reporting instead:
-1. Go to the **Security** tab of this repository
-2. Click **Report a vulnerability**
-3. Fill in the details and submit
+Public and `#test` use standard MeshCore channel credentials. Do not put private
+channel credentials, device identities, administrator passwords, or exported
+device configuration in issues, logs, screenshots, commits, or build artifacts.
 
-### What to include
+If a credential is accidentally published, rotate it on every affected device.
+Removing it from the latest commit does not remove it from Git history or
+previously downloaded firmware.
 
-A useful report tells us:
-- Which component or file is affected
-- What an attacker can do (impact) and under what conditions
-- A minimal reproduction case or proof-of-concept if you have one
-- Whether you believe it is remotely exploitable
+## Reporting a vulnerability
 
-You do not need a working exploit to report. An incomplete report is better
-than no report.
+Do not report vulnerabilities in a public issue. Use GitHub private
+vulnerability reporting from the repository's **Security** tab. Include the
+affected version, hardware, impact, reproduction steps, and whether the issue
+is remotely reachable over LoRa, USB, BLE, or Wi-Fi.
 
-## What to expect
-
-This is a volunteer-maintained open-source project. We will do our best to
-respond in a reasonable timeframe, but cannot commit to specific deadlines.
-
-We ask that you give us a fair opportunity to investigate and address the
-issue before any public disclosure. If you have not heard back after
-**90 days**, feel free to follow up or proceed with disclosure at your
-discretion.
+For vulnerabilities inherited unchanged from MeshCore, also consult upstream's
+[security policy](https://github.com/meshcore-dev/MeshCore/security/policy).
 
 ## Scope
 
 In scope:
-- Remote code execution, memory corruption, or denial-of-service via crafted
-  radio packets
-- Authentication or encryption bypasses
-- Vulnerabilities in the packet routing or path handling logic
 
-Out of scope:
-- Physical access attacks (e.g., JTAG, UART extraction of keys)
-- Regulatory compliance (duty cycle, frequency restrictions)
-- Jamming or other physical-layer radio interference
-- Issues in third-party libraries (RadioLib, Crypto, etc.) — report those
-  upstream
-- "Best practice" suggestions without a demonstrated attack path
+- Authentication or authorization bypasses
+- Exposure of private credentials or message contents
+- Crafted radio packets causing memory corruption, persistent crashes, or
+  unintended transmission
+- Bot loops or amplification that materially increase mesh airtime
+- Unsafe firmware-update or settings-migration behaviour
+
+Generally out of scope:
+
+- Radio jamming and unavoidable physical-layer interference
+- Attacks requiring unrestricted physical access to an unprotected device
+- Regulatory questions unrelated to a security defect
+- Unmodified third-party dependencies, which should also be reported upstream
+
+Loon is experimental firmware and comes without a security warranty.

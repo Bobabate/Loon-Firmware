@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible Loon firmware problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include passwords, private keys, private channel credentials, or private message content.
+  - type: input
+    id: version
+    attributes:
+      label: Loon version and filename
+      placeholder: Loon 0.1.1 — Loon-Firmware-0.1.1-Heltec-V3.application.bin
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      placeholder: Heltec WiFi LoRa 32 V3
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected and actual behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Recovery and comparison
+      description: Say whether rebooting, reflashing, or upstream MeshCore changes the result.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove credentials, precise private locations, and unrelated message content.

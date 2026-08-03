@@ -1,128 +1,309 @@
-## About MeshCore
+# Loon Firmware
 
-MeshCore is a lightweight, portable C++ library that enables multi-hop packet routing for embedded projects using LoRa and other packet radios. It is designed for developers who want to create resilient, decentralized communication networks that work without the internet.
+Loon Firmware is a standalone MeshCore repeater-bot for the Heltec WiFi LoRa
+32 V3. It repeats normal MeshCore traffic and adds a small, airtime-conscious
+bot for Public and `#test`. It needs no phone, computer, Wi-Fi, or Internet
+connection during normal operation.
 
-## 🔍 What is MeshCore?
+Loon is based on current upstream
+[MeshCore](https://github.com/meshcore-dev/MeshCore). Its bot behaviour was
+developed independently and is maintained in this repository.
 
-MeshCore now supports a range of LoRa devices, allowing for easy flashing without the need to compile firmware manually. Users can flash a pre-built binary using tools like Adafruit ESPTool and interact with the network through a serial console.
-MeshCore provides the ability to create wireless mesh networks, similar to Meshtastic and Reticulum but with a focus on lightweight multi-hop packet routing for embedded projects. Unlike Meshtastic, which is tailored for casual LoRa communication, or Reticulum, which offers advanced networking, MeshCore balances simplicity with scalability, making it ideal for custom embedded solutions, where devices (nodes) can communicate over long distances by relaying messages through intermediate nodes. This is especially useful in off-grid, emergency, or tactical situations where traditional communication infrastructure is unavailable.
+The name comes from a **loon call**: a compact signal sent across distance and
+answered elsewhere. That is the design goal for Loon on the mesh—useful,
+recognizable responses without unnecessary chatter.
 
-## ⚡ Key Features
+> [!WARNING]
+> Loon is experimental community firmware. Keep a known-working recovery image,
+> test on `#test` before enabling Public responses, and change the default
+> administrator password before deployment. Flashing custom firmware can make a
+> device temporarily unusable and may require recovery over USB.
 
-* Multi-Hop Packet Routing
-  * Devices can forward messages across multiple nodes, extending range beyond a single radio's reach.
-  * Supports up to a configurable number of hops to balance network efficiency and prevent excessive traffic.
-  * Nodes use fixed roles where "Companion" nodes are not repeating messages at all to prevent adverse routing paths from being used.
-* Supports LoRa Radios – Works with Heltec, RAK Wireless, and other LoRa-based hardware.
-* Decentralized & Resilient – No central server or internet required; the network is self-healing.
-* Low Power Consumption – Ideal for battery-powered or solar-powered devices.
-* Simple to Deploy – Pre-built example applications make it easy to get started.
+## Release status
 
-## 🎯 What Can You Use MeshCore For?
+Early binaries were withdrawn because they contained a published development
+administrator password. Do not install copies of those images. Version 0.1.3
+is the first release built from the sanitized public history; change the
+default administrator password before deployment.
 
-* Off-Grid Communication: Stay connected even in remote areas.
-* Emergency Response & Disaster Recovery: Set up instant networks where infrastructure is down.
-* Outdoor Activities: Hiking, camping, and adventure racing communication.
-* Tactical & Security Applications: Military, law enforcement, and private security use cases.
-* IoT & Sensor Networks: Collect data from remote sensors and relay it back to a central location.
+The current source targets the original Heltec V3 with 8 MB flash and no PSRAM:
 
-## 🚀 How to Get Started
+- Radio settings: 910.525 MHz, SF7, BW 62.5 kHz, CR 5
+- Default node name: `Loon`
 
-- Watch the [MeshCore QuickStart Playlist](https://www.youtube.com/watch?v=iaFltojJrAc&list=PLshzThxhw4O4WU_iZo3NmNZOv6KMrUuF9) by The Comms Channel
-- Watch the [MeshCore Technical Presentation](https://www.youtube.com/watch?v=OwmkVkZQTf4) by Liam Cottle.
-- Read through our [Frequently Asked Questions](./docs/faq.md) and [Documentation](https://docs.meshcore.io).
-- Flash the MeshCore firmware on a supported device.
-- Connect with a supported client.
+Release filenames identify the version, board, and image type. They do not
+include a region or preset name.
 
-For developers:
+- Current release: v0.1.3
 
-- Install [PlatformIO](https://docs.platformio.org) in [Visual Studio Code](https://code.visualstudio.com).
-- Clone and open the MeshCore repository in Visual Studio Code.
-- See the example applications you can modify and run:
-  - [Companion Radio](./examples/companion_radio) - For use with an external chat app, over BLE, USB or Wi-Fi.
-  - [KISS Modem](./examples/kiss_modem) - Serial KISS protocol bridge for host applications. ([protocol docs](./docs/kiss_modem_protocol.md))
-  - [Simple Repeater](./examples/simple_repeater) - Extends network coverage by relaying messages.
-  - [Simple Room Server](./examples/simple_room_server) - A simple BBS server for shared Posts.
-  - [Simple Secure Chat](./examples/simple_secure_chat) - Secure terminal based text communication between devices.
-  - [Simple Sensor](./examples/simple_sensor) - Remote sensor node with telemetry and alerting.
+## Features
 
-The Simple Secure Chat example can be interacted with through the Serial Monitor in Visual Studio Code, or with a Serial USB Terminal on Android.
+- Normal MeshCore repeater operation remains the priority.
+- `!ping`, `!help`, and `!about` operate on Public and `#test` through the
+  existing per-channel command controls.
+- `!roll` and bounded dice notation (`!roll 2d6`) are available only on
+  `#test`; Public ignores them.
+- Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
+- Scheduled announcements can be off, hourly, or daily per channel.
+- Persistent Loon configuration survives reboot and firmware updates.
+- Duplicate/rate protection and busy-channel delay reduce unnecessary airtime.
+- OLED shows the normal repeater information.
+- Existing authenticated MeshCore remote administration remains available.
+- Wi-Fi is off during normal operation; the existing authenticated OTA mode is
+  available when deliberately started by an administrator.
 
-## ⚡️ MeshCore Flasher
+## Bot commands
 
-We have prebuilt firmware ready to flash on supported devices.
+Loon v0.1.3 supports these channel commands:
 
-- Launch https://meshcore.io/flasher
-- Select a supported device
-- Flash one of the firmware types:
-  - Companion, Repeater or Room Server
-- Once flashing is complete, you can connect with one of the MeshCore clients below.
-
-## 📱 MeshCore Clients
-
-**Companion Firmware**
-
-The companion firmware can be connected to via BLE, USB or Wi-Fi depending on the firmware type you flashed.
-
-- Web: https://app.meshcore.nz
-- Android: https://play.google.com/store/apps/details?id=com.liamcottle.meshcore.android
-- iOS: https://apps.apple.com/us/app/meshcore/id6742354151?platform=iphone
-- NodeJS: https://github.com/liamcottle/meshcore.js
-- Python: https://github.com/fdlamotte/meshcore-cli
-
-**Repeater and Room Server Firmware**
-
-The repeater and room server firmware can be set up via USB in the web config tool.
-
-- https://config.meshcore.io
-
-They can also be managed via LoRa in the mobile app by using the Remote Management feature.
-
-## 🛠 Hardware Compatibility
-
-MeshCore is designed for devices listed in the [MeshCore Flasher](https://meshcore.io/flasher)
-
-## 📜 License
-
-MeshCore is open-source software released under the MIT License. You are free to use, modify, and distribute it for personal and commercial projects.
-
-## Contributing
-
-Please submit PR's using 'dev' as the base branch!
-For minor changes just submit your PR and we'll try to review it, but for anything more 'impactful' please open an Issue first and start a discussion. It is better to sound out what it is you want to achieve first, and try to come to a consensus on what the best approach is, especially when it impacts the structure or architecture of this codebase.
-
-Here are some general principles you should try to adhere to:
-* Keep it simple. Please, don't think like a high-level lang programmer. Think embedded, and keep code concise, without any unnecessary layers.
-* No dynamic memory allocation, except during setup/begin functions.
-* Use the same brace and indenting style that's in the core source modules. (A .clang-format is probably going to be added soon, but please do NOT retroactively re-format existing code. This just creates unnecessary diffs that make finding problems harder)
-
-Help us prioritize! Please react with thumbs-up to issues/PRs you care about most. We look at reaction counts when planning work.
-
-### Running unit tests
-
-To run unit tests, run the following command:
-
-```bash
-pio test --environment native --verbose
+```text
+!ping
+!roll
+!roll 2d6
+!help
+!about
 ```
 
-## Road-Map / To-Do
+The command is case-insensitive, tolerates surrounding spaces, and must be the
+entire message. Loon ignores its own messages.
 
-There are a number of fairly major features in the pipeline, with no particular time-frames attached yet. In very rough chronological order:
-- [X] Companion radio: UI redesign
-- [X] Repeater + Room Server: add ACL's (like Sensor Node has)
-- [X] Standardise Bridge mode for repeaters
-- [ ] Repeater/Bridge: Standardise the Transport Codes for zoning/filtering
-- [X] Core + Repeater: enhanced zero-hop neighbour discovery
-- [ ] Core: round-trip manual path support
-- [ ] Companion + Apps: support for multiple sub-meshes (and 'off-grid' client repeat mode)
-- [ ] Core + Apps: support for LZW message compression
-- [ ] Core: dynamic CR (Coding Rate) for weak vs strong hops
-- [ ] Core: new framework for hosting multiple virtual nodes on one physical device
-- [ ] V2 protocol spec: discussion and consensus around V2 packet protocol, including path hashes, new encryption specs, etc
+On `#test`, `!help` returns:
 
-## 📞 Get Support
+```text
+Commands: !ping, !roll [NdM], !help, !about
+```
 
-- Report bugs and request features on the [GitHub Issues](https://github.com/ripplebiz/MeshCore/issues) page.
-- Find additional guides and components on [my site](https://buymeacoffee.com/ripplebiz).
-- Join [MeshCore Discord](https://meshcore.gg) to chat with the developers and get help from the community.
+On Public, it returns `Commands: !ping, !help, !about`.
+
+`!roll` defaults to `1d6`. Dice notation accepts 1–10 dice with 2–100 sides.
+It is deliberately restricted to `#test` to avoid utility traffic on Public.
+
+```text
+🎲 @[your-name] | 2d6: 3+5 = 8
+```
+
+`!about` returns the firmware version and the standard MeshCore owner message:
+
+```text
+Loon v0.1.3 | Operated by your-name
+```
+
+Set the owner message through authenticated administration:
+
+```text
+set owner.info Operated by your-name
+```
+
+If `owner.info` is empty, `!about` returns only the firmware version.
+
+Direct response:
+
+```text
+Loon: Pong @[your-name] | Path direct | RSSI -29 | SNR 11.8 | Busy 1%
+```
+
+Routed response:
+
+```text
+Loon: Pong @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
+```
+
+`Path` is the inbound route observed by Loon. A directly received request is
+shown as `direct`; routed requests show hop hashes separated by `>`. Incoming
+1-, 2-, and 3-byte hashes are preserved for display. Replies use 3-byte path
+hashes.
+
+Command rate protection:
+
+- At most one accepted bot command globally every 10 seconds.
+- The same sender is limited to one accepted bot command every 60 seconds.
+- Above the configured Busy threshold, the response is progressively delayed.
+- Repeater forwarding continues to take priority.
+
+## Scheduled announcements
+
+With no custom message configured, Loon sends the compact status:
+
+```text
+Loon: ONLINE | Up 6d04h | RX 582 | Repeated 143 | Busy 5%
+```
+
+- `Up`: time since boot.
+- `RX`: packets received by the radio.
+- `Repeated`: flood packets transmitted by Loon.
+- `Busy`: measured TX plus RX airtime over the latest one-minute sample.
+
+When a custom message is configured, it replaces the status completely. Loon
+does not add a name prefix because MeshCore already identifies the sender:
+
+```text
+Community repeater online — monitoring #test
+```
+
+The custom message can contain up to 140 characters. Clearing it restores the
+default compact status announcement.
+
+Hourly announcements occur at the next top of the hour. Daily announcements
+use `loon.daily.hour` and `loon.timezone`. Loon adds 0–30 seconds of random
+jitter. It waits for a valid MeshCore clock and does not guess wall-clock time.
+An announcement is skipped when Busy is 80% or higher; missed announcements
+are not replayed later.
+
+The Heltec V3 has no battery-backed real-time clock. Its clock may need to be
+synchronized after a complete power loss.
+
+## Defaults
+
+| Setting | Public | `#test` |
+| --- | --- | --- |
+| Ping | Off | On |
+| Announcement | Off | Daily |
+
+Other defaults:
+
+- Daily announcement hour: `09:00`
+- Timezone offset: `-300` minutes (Toronto standard time)
+- Busy-delay threshold: `20%`
+- Maximum busy delay: 120 seconds
+- Boot announcement: none
+
+Toronto uses `-300` in standard time and `-240` during daylight time. Loon uses
+a fixed offset and does not change it automatically for DST.
+
+## Loon administration commands
+
+Run these through the USB serial console or authenticated MeshCore Remote
+Management. Commands with no value display their current setting.
+
+| Command | Purpose |
+| --- | --- |
+| `loon` | Show all main Loon settings. |
+| `loon.ping.public [on\|off]` | Read or change Public ping responses. |
+| `loon.ping.test [on\|off]` | Read or change `#test` ping responses. |
+| `loon.announce.public [off\|hourly\|daily]` | Read or change Public announcements. |
+| `loon.announce.test [off\|hourly\|daily]` | Read or change `#test` announcements. |
+| `loon.announce.message [TEXT\|clear]` | Read, set, or clear the custom announcement text. |
+| `loon.daily.hour [0..23]` | Read or set the local hour for daily announcements. |
+| `loon.timezone [-720..840]` | Read or set the UTC offset in minutes. |
+| `loon.busy.threshold [0..100]` | Read or set the percentage where ping delay begins. |
+
+Examples:
+
+```text
+loon
+loon.ping.public on
+loon.ping.test off
+loon.announce.public daily
+loon.announce.test hourly
+loon.announce.message Community repeater online — monitoring #test
+loon.daily.hour 21
+loon.timezone -240
+loon.busy.threshold 25
+```
+
+Successful changes reply `OK` and are saved immediately. With no argument,
+`loon.announce.message` shows the current message or `off`. Use
+`loon.announce.message clear` to return to the default status announcement.
+
+The `loon.ping.public` setting controls `!ping`, `!help`, and `!about` on
+Public. `loon.ping.test` controls those commands plus `!roll` on `#test`.
+
+## Useful inherited MeshCore commands
+
+Loon retains the standard repeater CLI. Commonly useful commands include:
+
+| Command | Purpose |
+| --- | --- |
+| `ver` | Show firmware version. |
+| `board` | Show board information. |
+| `clock` | Show the current clock. |
+| `clock sync` | Request clock synchronization. |
+| `time EPOCH` | Set Unix time from the USB serial console. |
+| `stats-packets` | Show packet statistics (USB serial only). |
+| `stats-radio` | Show radio statistics (USB serial only). |
+| `stats-core` | Show core statistics (USB serial only). |
+| `clear stats` | Reset collected statistics. |
+| `neighbors` | Show the neighbour table. |
+| `discover.neighbors` | Send a neighbour discovery request. |
+| `advert` | Send an advertisement. |
+| `reboot` | Reboot the device. |
+| `start ota` | Start the platform OTA flow when supported. |
+| `get NAME` | Read a standard repeater setting. |
+| `set NAME VALUE` | Change a standard repeater setting. |
+
+The complete standard repeater configuration surface is inherited from
+MeshCore and may change when Loon updates its upstream base. Use
+[`config.meshcore.io`](https://config.meshcore.io) for normal provisioning and
+the upstream [MeshCore documentation](https://docs.meshcore.io) for standard
+settings. Loon-specific commands are the stable interface documented above.
+
+## Flashing and updating
+
+### Updating a working Loon installation
+
+Use the non-merged application image from the latest GitHub release. Keep the
+installed working image or official MeshCore firmware available for recovery.
+Do not download early Loon binaries from mirrors or old links.
+
+### Recovery
+
+Keep a known-working official Heltec V3 repeater image available. If
+Loon fails to boot, restore the official firmware with erase, then layer the
+known-working non-merged application image over it without erasing.
+
+## Initial configuration and security
+
+The source uses MeshCore's public development default administrator password
+for first provisioning. Change it immediately using the standard MeshCore
+administration tools. Never publish deployed administrator passwords, private
+channel keys, private keys, or device configuration dumps. A password embedded
+in source or a release must be treated as public.
+
+Public and `#test` are the only channels recognized by the Loon bot in v0.1.3.
+Their standard channel secrets are embedded so Loon can decrypt commands and
+construct replies. Ordinary repeater forwarding does not expose message
+content through Loon, and Loon does not retain a message history.
+
+## Building from source
+
+Install PlatformIO, clone the repository, and run:
+
+```sh
+./build_loon_heltec_v3.sh
+```
+
+The PlatformIO environment is `Loon_heltec_v3_repeater`. The resulting
+application image is:
+
+```text
+.pio/build/Loon_heltec_v3_repeater/firmware.bin
+```
+
+The current build targets an ESP32-S3 Heltec V3 with 8 MB flash and no PSRAM.
+Loon-specific code is kept in the repeater application so upstream MeshCore
+updates remain manageable.
+
+## Testing checklist
+
+- Device boots and OLED remains stable.
+- Repeater advert appears on the mesh.
+- `!ping` on `#test` produces one reply.
+- `!help` lists commands available on its channel.
+- `!roll` and `!roll 2d6` work on `#test` and are ignored on Public.
+- `!about` shows the firmware version and configured owner message.
+- A direct ping displays `Path direct`.
+- A routed ping displays the observed hop hashes.
+- RSSI, SNR, and Busy values are plausible.
+- Disabled channels produce no bot response.
+- Hourly/daily announcements occur only on enabled channels.
+- Repeater traffic continues normally during bot activity.
+- No resets occur during extended operation.
+
+## Project status
+
+Loon has booted successfully on a physical Heltec V3, and direct `#test` ping
+behaviour has been verified. Routed pings, dice rolling, long-duration
+stability, and scheduled announcements remain field-test items.
+
+MeshCore and Loon are MIT-licensed; see [license.txt](license.txt). This fork
+retains upstream copyright and attribution.

@@ -17,3 +17,9 @@ compile_commands.json
 .venv/
 venv/
 platformio.local.ini
+
+# Firmware and local release artifacts belong in GitHub Releases, not Git.
+*.bin
+*.uf2
+*.elf
+*.map

@@ -7,6 +7,7 @@ are tracked in the upstream repository.
 
 - Restrict `!roll` to one six-sided die.
 - Replace the global/60-second cooldowns with a 10-second per-sender cooldown.
+- Make `!help` loop-safe by omitting complete command tokens from its response.
 
 ## 0.1.3 - 2026-08-02
 

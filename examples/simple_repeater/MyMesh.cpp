@@ -737,8 +737,8 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
-    sendLoonReply(channel, is_public ? "Commands: !ping, !help, !about"
-                                     : "Commands: !ping, !roll, !help, !about");
+    sendLoonReply(channel, is_public ? "Loon commands: ping, about. Use the ! prefix."
+                                     : "Loon commands: ping, roll, about. Use the ! prefix.");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);

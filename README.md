@@ -69,10 +69,12 @@ entire message. Loon ignores its own messages.
 On `#test`, `!help` returns:
 
 ```text
-Commands: !ping, !roll, !help, !about
+Loon commands: ping, roll, about. Use the ! prefix.
 ```
 
-On Public, it returns `Commands: !ping, !help, !about`.
+On Public, it returns `Loon commands: ping, about. Use the ! prefix.` The help
+response deliberately contains no complete command tokens, preventing it from
+triggering Loon or another exact-match bot.
 
 `!roll` rolls one six-sided die. It is restricted to `#test`.
 

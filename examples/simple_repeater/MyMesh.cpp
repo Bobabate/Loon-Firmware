@@ -705,12 +705,11 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (!sender[0]) StrHelper::strncpy(sender, "Unknown", sizeof(sender));
   if (strcmp(sender, _prefs.node_name) == 0) return;
   bool is_ping = loonCommandIs(body, "!ping");
-  bool is_help = loonCommandIs(body, "!help");
-  bool is_about = loonCommandIs(body, "!about");
+  bool is_help = !is_public && loonCommandIs(body, "!help");
+  bool is_about = !is_public && loonCommandIs(body, "!about");
   bool is_roll = !is_public && loonCommandIs(body, "!roll");
   if (!is_ping && !is_help && !is_about && !is_roll) return;
-  bool enabled = is_public ? loon_prefs.ping_public : loon_prefs.ping_test;
-  if (!enabled) return;
+  if (is_ping && !(is_public ? loon_prefs.ping_public : loon_prefs.ping_test)) return;
   unsigned long now = millis();
   uint32_t sender_hash = calcLoonChecksum(sender, strlen(sender));
   uint8_t sender_slot = 0;
@@ -737,8 +736,7 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
-    sendLoonReply(channel, is_public ? "Loon commands: ping, about. Use the ! prefix."
-                                     : "Loon commands: ping, roll, about. Use the ! prefix.");
+    sendLoonReply(channel, "Loon commands: ping, roll, about. Use the ! prefix.");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);

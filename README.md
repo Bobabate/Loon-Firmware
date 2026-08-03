@@ -40,8 +40,9 @@ include a region or preset name.
 ## Features
 
 - Normal MeshCore repeater operation remains the priority.
-- `!ping`, `!help`, and `!about` operate on Public and `#test` through the
-  existing per-channel command controls.
+- Public accepts only `!ping`; it follows `loon.ping.public`.
+- `#test` accepts `!ping`, `!help`, `!about`, and `!roll`; ping follows
+  `loon.ping.test`.
 - `!roll` rolls one six-sided die on `#test`; Public ignores it.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
@@ -72,9 +73,9 @@ On `#test`, `!help` returns:
 Loon commands: ping, roll, about. Use the ! prefix.
 ```
 
-On Public, it returns `Loon commands: ping, about. Use the ! prefix.` The help
-response deliberately contains no complete command tokens, preventing it from
-triggering Loon or another exact-match bot.
+Public does not accept `!help`. The `#test` help response deliberately contains
+no complete command tokens, preventing it from triggering Loon or another
+exact-match bot.
 
 `!roll` rolls one six-sided die. It is restricted to `#test`.
 
@@ -205,8 +206,9 @@ Successful changes reply `OK` and are saved immediately. With no argument,
 `loon.announce.message` shows the current message or `off`. Use
 `loon.announce.message clear` to return to the default status announcement.
 
-The `loon.ping.public` setting controls `!ping`, `!help`, and `!about` on
-Public. `loon.ping.test` controls those commands plus `!roll` on `#test`.
+`loon.ping.public` controls only `!ping` on Public. `loon.ping.test` controls
+`!ping` on `#test`. The `#test`-only utility commands remain available whenever
+the `#test` command channel is enabled.
 
 ## Useful inherited MeshCore commands
 
@@ -288,7 +290,7 @@ updates remain manageable.
 - Device boots and OLED remains stable.
 - Repeater advert appears on the mesh.
 - `!ping` on `#test` produces one reply.
-- `!help` lists commands available on its channel.
+- `!help` lists the utility commands on `#test` and is ignored on Public.
 - `!roll` works on `#test` and is ignored on Public.
 - `!about` shows the firmware version and configured owner message.
 - A direct ping displays `Path direct`.

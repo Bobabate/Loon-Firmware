@@ -21,10 +21,8 @@ recognizable responses without unnecessary chatter.
 
 ## Release status
 
-Early binaries were withdrawn because they contained a published development
-administrator password. Do not install copies of those images. Version 0.1.3
-is the first release built from the sanitized public history; change the
-default administrator password before deployment.
+Install firmware only from the current GitHub releases. Change the default
+administrator password before deployment.
 
 The current source targets the original Heltec V3 with 8 MB flash and no PSRAM:
 
@@ -246,7 +244,7 @@ settings. Loon-specific commands are the stable interface documented above.
 
 Use the non-merged application image from the latest GitHub release. Keep the
 installed working image or official MeshCore firmware available for recovery.
-Do not download early Loon binaries from mirrors or old links.
+Use release assets from this repository rather than mirrors or old links.
 
 ### Recovery
 

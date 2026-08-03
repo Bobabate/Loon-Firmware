@@ -7,8 +7,8 @@ development source. Experimental and diagnostic releases are unsupported.
 
 | Version | Status |
 | --- | --- |
+| Latest GitHub release | Field-test support |
 | Current source | Supported for review and development |
-| All previously published binaries | Withdrawn; do not install |
 
 ## Credentials and provisioning
 

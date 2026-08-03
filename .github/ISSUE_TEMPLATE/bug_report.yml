@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Loon version and filename
-      placeholder: Loon 0.1.1 — Loon-Firmware-0.1.1-Heltec-V3.application.bin
+      placeholder: Loon 0.1.4 — Loon-Firmware-0.1.4-Heltec-V3.application.bin
     validations:
       required: true
   - type: input

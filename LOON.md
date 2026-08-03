@@ -46,7 +46,8 @@ Loon: ONLINE | Up 6d04h | RX 582 | Repeated 143 | Busy 5%
 ```
 
 When configured, a custom message replaces the status text completely. Empty
-or cleared custom text restores the compact status announcement.
+or cleared custom text restores the compact status announcement. Custom text
+whose first non-space character is `!` is rejected to prevent bot loops.
 
 Daily is the recommended cadence. Public transmission is disabled until it is
 deliberately enabled after testing.

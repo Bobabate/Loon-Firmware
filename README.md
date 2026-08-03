@@ -34,8 +34,7 @@ The current source targets the original Heltec V3 with 8 MB flash and no PSRAM:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.1.3. The `loon/main` source contains the next unreleased
-  command and cooldown changes; no replacement binary has been built yet.
+- Current release: v0.1.4.
 
 ## Features
 
@@ -142,7 +141,9 @@ Community repeater online — monitoring #test
 ```
 
 The custom message can contain up to 140 characters. Clearing it restores the
-default compact status announcement.
+default compact status announcement. Its first non-space character cannot be
+`!`; unsafe stored text is cleared during upgrade and the compact status is
+used instead.
 
 Hourly announcements occur at the next top of the hour. Daily announcements
 use `loon.daily.hour` and `loon.timezone`. Loon adds 0–30 seconds of random

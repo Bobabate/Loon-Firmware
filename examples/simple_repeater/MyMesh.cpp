@@ -136,6 +136,11 @@ static bool loonCommandIs(const char* body, const char* command) {
   return *body == 0;
 }
 
+static bool loonAnnouncementIsSafe(const char* text) {
+  while (*text == ' ') text++;
+  return *text != '!';
+}
+
 static const char* loonModeName(uint8_t mode) {
   return mode == LOON_ANNOUNCE_HOURLY ? "hourly" : mode == LOON_ANNOUNCE_DAILY ? "daily" : "off";
 }
@@ -572,6 +577,10 @@ void MyMesh::loadLoonPrefs() {
                loon_prefs.busy_threshold <= 100 && loon_prefs.max_busy_delay_secs <= 3600 &&
                loon_prefs.announcement_message[sizeof(loon_prefs.announcement_message) - 1] == 0;
   if (!valid) loon_prefs = original;
+  else if (!loonAnnouncementIsSafe(loon_prefs.announcement_message)) {
+    loon_prefs.announcement_message[0] = 0;
+    saveLoonPrefs();
+  }
 }
 
 void MyMesh::saveLoonPrefs() {
@@ -780,7 +789,7 @@ void MyMesh::sendLoonAnnouncement(const mesh::GroupChannel& channel) {
   uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
-  if (loon_prefs.announcement_message[0]) {
+  if (loon_prefs.announcement_message[0] && loonAnnouncementIsSafe(loon_prefs.announcement_message)) {
     StrHelper::strncpy(reinterpret_cast<char*>(&temp[5]), loon_prefs.announcement_message,
                        LOON_MAX_ANNOUNCEMENT_TEXT + 1);
   } else {
@@ -1710,6 +1719,8 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       loon_prefs.announcement_message[0] = 0; saveLoonPrefs(); strcpy(reply, "OK");
     } else if (strlen(value) >= sizeof(loon_prefs.announcement_message)) {
       strcpy(reply, "Err - message must be 140 characters or fewer");
+    } else if (!loonAnnouncementIsSafe(value)) {
+      strcpy(reply, "Err - message cannot begin with !");
     } else {
       StrHelper::strncpy(loon_prefs.announcement_message, value, sizeof(loon_prefs.announcement_message));
       saveLoonPrefs(); strcpy(reply, "OK");

@@ -5,10 +5,14 @@ are tracked in the upstream repository.
 
 ## Unreleased
 
+## 0.1.4 - 2026-08-02
+
 - Restrict `!roll` to one six-sided die.
 - Replace the global/60-second cooldowns with a 10-second per-sender cooldown.
 - Make `!help` loop-safe by omitting complete command tokens from its response.
 - Restrict Public commands to `!ping`; keep help, about, and roll on `#test`.
+- Reject custom announcements beginning with `!` and safely clear legacy
+  values that could trigger another bot.
 
 ## 0.1.3 - 2026-08-02
 

@@ -1,9 +1,10 @@
 # Loon Firmware
 
 Loon Firmware is a standalone MeshCore repeater-bot for the Heltec WiFi LoRa
-32 V3. It repeats normal MeshCore traffic and adds a small, airtime-conscious
-bot for Public and `#test`. It needs no phone, computer, Wi-Fi, or Internet
-connection during normal operation.
+32 V3 and RAK4631 repeaters, including the WisMesh Repeater Mini. It repeats
+normal MeshCore traffic and adds a small, airtime-conscious bot for Public and
+`#test`. It needs no phone, computer, Wi-Fi, or Internet connection during
+normal operation.
 
 Loon is based on current upstream
 [MeshCore](https://github.com/meshcore-dev/MeshCore). Its bot behaviour was
@@ -24,7 +25,9 @@ recognizable responses without unnecessary chatter.
 Install firmware only from the current GitHub releases. Change the default
 administrator password before deployment.
 
-The current source targets the original Heltec V3 with 8 MB flash and no PSRAM:
+The current source targets the original Heltec V3 with 8 MB flash and no PSRAM,
+plus an additive RAK4631 repeater target that retains the complete official
+MeshCore RAK repeater configuration:
 
 - Radio settings: 910.525 MHz, SF7, BW 62.5 kHz, CR 5
 - Default node name: `Loon`
@@ -271,18 +274,21 @@ Install PlatformIO, clone the repository, and run:
 
 ```sh
 ./build_loon_heltec_v3.sh
+./build_loon_rak4631_repeater_mini.sh
 ```
 
-The PlatformIO environment is `Loon_heltec_v3_repeater`. The resulting
-application image is:
+The PlatformIO environments are `Loon_heltec_v3_repeater` and
+`Loon_RAK4631_repeater_mini`. The resulting firmware images are:
 
 ```text
 .pio/build/Loon_heltec_v3_repeater/firmware.bin
+.pio/build/Loon_RAK4631_repeater_mini/firmware.zip
 ```
 
-The current build targets an ESP32-S3 Heltec V3 with 8 MB flash and no PSRAM.
 Loon-specific code is kept in the repeater application so upstream MeshCore
-updates remain manageable.
+updates remain manageable. The RAK environment preserves the official RAK4631
+repeater build flags, source set, display support, sensors, power management,
+and boosted receive gain.
 
 ## Testing checklist
 

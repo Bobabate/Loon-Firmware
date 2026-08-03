@@ -1,12 +1,13 @@
 # Loon Firmware
 
 Loon Firmware is a standalone MeshCore repeater-bot for the original Heltec
-WiFi LoRa 32 V3 (8 MB flash, no PSRAM required). It starts from current
-upstream MeshCore and keeps repeater operation as the highest priority.
+WiFi LoRa 32 V3 (8 MB flash, no PSRAM required) and RAK4631 repeaters,
+including the WisMesh Repeater Mini. It starts from current upstream MeshCore
+and keeps repeater operation as the highest priority.
 
 ## Version 0.1 scope
 
-- Heltec WiFi LoRa 32 V3 only.
+- Heltec WiFi LoRa 32 V3 and RAK4631 repeater targets.
 - USA/Canada recommended preset: 910.525 MHz, SF7, BW62.5, CR5.
 - Release filenames identify only the firmware version, board, and image type;
   region/preset names are not included.
@@ -84,9 +85,12 @@ Install PlatformIO, then run:
 
 ```sh
 ./build_loon_heltec_v3.sh
+./build_loon_rak4631_repeater_mini.sh
 ```
 
-The build environment is `Loon_heltec_v3_repeater`.
+The build environments are `Loon_heltec_v3_repeater` and
+`Loon_RAK4631_repeater_mini`. The RAK target retains the official MeshCore
+RAK4631 repeater feature set and adds Loon without replacing that target.
 
 ## Administration
 

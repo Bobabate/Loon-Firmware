@@ -5,6 +5,10 @@ are tracked in the upstream repository.
 
 ## Unreleased
 
+- Add an additive RAK4631 repeater target for the WisMesh Repeater Mini while
+  preserving the complete official MeshCore RAK repeater configuration.
+- Add a RAK4631 build helper and document both supported hardware targets.
+
 ## 0.1.4 - 2026-08-02
 
 - Restrict `!roll` to one six-sided die.

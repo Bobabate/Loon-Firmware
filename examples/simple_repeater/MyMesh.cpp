@@ -790,8 +790,8 @@ void MyMesh::sendLoonAnnouncement(const mesh::GroupChannel& channel) {
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
   if (loon_prefs.announcement_message[0] && loonAnnouncementIsSafe(loon_prefs.announcement_message)) {
-    StrHelper::strncpy(reinterpret_cast<char*>(&temp[5]), loon_prefs.announcement_message,
-                       LOON_MAX_ANNOUNCEMENT_TEXT + 1);
+    snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
+             "%s: %s", _prefs.node_name, loon_prefs.announcement_message);
   } else {
     uint64_t seconds = uptime_millis / 1000ULL;
     unsigned long days = seconds / 86400ULL;

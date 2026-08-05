@@ -8,6 +8,9 @@ are tracked in the upstream repository.
 - Add an additive RAK4631 repeater target for the WisMesh Repeater Mini while
   preserving the complete official MeshCore RAK repeater configuration.
 - Add a RAK4631 build helper and document both supported hardware targets.
+- Prefix custom scheduled announcements with the configured node name so
+  MeshCore renders them as normal group messages.
+- Add the node-name prefix without exceeding the encrypted group-text payload.
 
 ## 0.1.4 - 2026-08-02
 

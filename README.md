@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.1.4.
+- Current release: v0.1.5-rc2.
 
 ## Features
 
@@ -134,11 +134,11 @@ Loon: ONLINE | Up 6d04h | RX 582 | Repeated 143 | Busy 5%
 - `Repeated`: flood packets transmitted by Loon.
 - `Busy`: measured TX plus RX airtime over the latest one-minute sample.
 
-When a custom message is configured, it replaces the status completely. Loon
-does not add a name prefix because MeshCore already identifies the sender:
+When a custom message is configured, it replaces the status body while keeping
+the node-name prefix required by MeshCore group text:
 
 ```text
-Community repeater online — monitoring #test
+Loon: Community repeater online — monitoring #test
 ```
 
 The custom message can contain up to 140 characters. Clearing it restores the

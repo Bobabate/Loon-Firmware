@@ -5,6 +5,9 @@ are tracked in the upstream repository.
 
 ## Unreleased
 
+- Give Public and `#test` independent custom announcement text.
+- Migrate an existing shared custom message to both channels; clearing either
+  channel's text restores its compact status announcement.
 - Add an additive RAK4631 repeater target for the WisMesh Repeater Mini while
   preserving the complete official MeshCore RAK repeater configuration.
 - Add a RAK4631 build helper and document both supported hardware targets.

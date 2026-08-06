@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.1.5-rc2.
+- Current release: v0.1.5-rc3.
 
 ## Features
 
@@ -134,15 +134,16 @@ Loon: ONLINE | Up 6d04h | RX 582 | Repeated 143 | Busy 5%
 - `Repeated`: flood packets transmitted by Loon.
 - `Busy`: measured TX plus RX airtime over the latest one-minute sample.
 
-When a custom message is configured, it replaces the status body while keeping
+Public and `#test` each have their own custom message. When one is configured,
+it replaces that channel's status body while keeping
 the node-name prefix required by MeshCore group text:
 
 ```text
 Loon: Community repeater online — monitoring #test
 ```
 
-The custom message can contain up to 140 characters. Clearing it restores the
-default compact status announcement. Its first non-space character cannot be
+Each custom message can contain up to 140 characters. Clearing either one
+restores the default compact status announcement for that channel. Its first non-space character cannot be
 `!`; unsafe stored text is cleared during upgrade and the compact status is
 used instead.
 
@@ -185,7 +186,8 @@ Management. Commands with no value display their current setting.
 | `loon.ping.test [on\|off]` | Read or change `#test` ping responses. |
 | `loon.announce.public [off\|hourly\|daily]` | Read or change Public announcements. |
 | `loon.announce.test [off\|hourly\|daily]` | Read or change `#test` announcements. |
-| `loon.announce.message [TEXT\|clear]` | Read, set, or clear the custom announcement text. |
+| `loon.announce.public.message [TEXT\|clear]` | Read, set, or clear the Public custom text. |
+| `loon.announce.test.message [TEXT\|clear]` | Read, set, or clear the `#test` custom text. |
 | `loon.daily.hour [0..23]` | Read or set the local hour for daily announcements. |
 | `loon.timezone [-720..840]` | Read or set the UTC offset in minutes. |
 | `loon.busy.threshold [0..100]` | Read or set the percentage where ping delay begins. |
@@ -198,15 +200,16 @@ loon.ping.public on
 loon.ping.test off
 loon.announce.public daily
 loon.announce.test hourly
-loon.announce.message Community repeater online — monitoring #test
+loon.announce.public.message Community repeater online
+loon.announce.test.message Test channel check-in
 loon.daily.hour 21
 loon.timezone -240
 loon.busy.threshold 25
 ```
 
 Successful changes reply `OK` and are saved immediately. With no argument,
-`loon.announce.message` shows the current message or `off`. Use
-`loon.announce.message clear` to return to the default status announcement.
+Each message command shows its current message or `default`. Use `clear` to
+return that channel to the default compact status announcement.
 
 `loon.ping.public` controls only `!ping` on Public. `loon.ping.test` controls
 `!ping` on `#test`. The `#test`-only utility commands remain available whenever

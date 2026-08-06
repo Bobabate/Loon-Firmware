@@ -115,7 +115,8 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
     int16_t timezone_minutes;
     uint8_t busy_threshold;
     uint16_t max_busy_delay_secs;
-    char announcement_message[141];
+    char announcement_public_message[141];
+    char announcement_test_message[141];
     uint32_t checksum;
   } loon_prefs;
   mesh::GroupChannel loon_public_channel, loon_test_channel;

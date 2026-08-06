@@ -62,7 +62,7 @@
 
 #ifdef LOON_FIRMWARE
 #define LOON_PREFS_MAGIC             0x4C4F4F4EUL
-#define LOON_PREFS_VERSION           2
+#define LOON_PREFS_VERSION           3
 #define LOON_PREFS_FILE              "/loon_prefs"
 #define LOON_ANNOUNCE_OFF            0
 #define LOON_ANNOUNCE_HOURLY         1
@@ -92,6 +92,21 @@ struct LoonPrefsV1 {
   int16_t timezone_minutes;
   uint8_t busy_threshold;
   uint16_t max_busy_delay_secs;
+  uint32_t checksum;
+};
+
+struct LoonPrefsV2 {
+  uint32_t magic;
+  uint8_t version;
+  uint8_t ping_public;
+  uint8_t ping_test;
+  uint8_t announce_public;
+  uint8_t announce_test;
+  uint8_t daily_hour;
+  int16_t timezone_minutes;
+  uint8_t busy_threshold;
+  uint16_t max_busy_delay_secs;
+  char announcement_message[141];
   uint32_t checksum;
 };
 
@@ -562,6 +577,36 @@ void MyMesh::loadLoonPrefs() {
     }
     return;
   }
+  if (file.size() == sizeof(LoonPrefsV2)) {
+    LoonPrefsV2 old;
+    bool read_ok = file.read(reinterpret_cast<uint8_t*>(&old), sizeof(old)) == sizeof(old);
+    file.close();
+    bool valid = read_ok && old.magic == LOON_PREFS_MAGIC && old.version == 2 &&
+                 old.checksum == calcLoonChecksum(&old, offsetof(LoonPrefsV2, checksum)) &&
+                 old.ping_public <= 1 && old.ping_test <= 1 &&
+                 old.announce_public <= LOON_ANNOUNCE_DAILY && old.announce_test <= LOON_ANNOUNCE_DAILY &&
+                 old.daily_hour <= 23 && old.timezone_minutes >= -720 && old.timezone_minutes <= 840 &&
+                 old.busy_threshold <= 100 && old.max_busy_delay_secs <= 3600 &&
+                 old.announcement_message[sizeof(old.announcement_message) - 1] == 0;
+    if (valid) {
+      loon_prefs.ping_public = old.ping_public;
+      loon_prefs.ping_test = old.ping_test;
+      loon_prefs.announce_public = old.announce_public;
+      loon_prefs.announce_test = old.announce_test;
+      loon_prefs.daily_hour = old.daily_hour;
+      loon_prefs.timezone_minutes = old.timezone_minutes;
+      loon_prefs.busy_threshold = old.busy_threshold;
+      loon_prefs.max_busy_delay_secs = old.max_busy_delay_secs;
+      if (loonAnnouncementIsSafe(old.announcement_message)) {
+        StrHelper::strncpy(loon_prefs.announcement_public_message, old.announcement_message,
+                           sizeof(loon_prefs.announcement_public_message));
+        StrHelper::strncpy(loon_prefs.announcement_test_message, old.announcement_message,
+                           sizeof(loon_prefs.announcement_test_message));
+      }
+      saveLoonPrefs();
+    }
+    return;
+  }
   if (file.size() != sizeof(loon_prefs)) { file.close(); return; }
   LoonPrefs loaded;
   if (file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) != sizeof(loaded)) { file.close(); return; }
@@ -575,10 +620,13 @@ void MyMesh::loadLoonPrefs() {
                loon_prefs.announce_test <= LOON_ANNOUNCE_DAILY && loon_prefs.daily_hour <= 23 &&
                loon_prefs.timezone_minutes >= -720 && loon_prefs.timezone_minutes <= 840 &&
                loon_prefs.busy_threshold <= 100 && loon_prefs.max_busy_delay_secs <= 3600 &&
-               loon_prefs.announcement_message[sizeof(loon_prefs.announcement_message) - 1] == 0;
+               loon_prefs.announcement_public_message[sizeof(loon_prefs.announcement_public_message) - 1] == 0 &&
+               loon_prefs.announcement_test_message[sizeof(loon_prefs.announcement_test_message) - 1] == 0;
   if (!valid) loon_prefs = original;
-  else if (!loonAnnouncementIsSafe(loon_prefs.announcement_message)) {
-    loon_prefs.announcement_message[0] = 0;
+  else if (!loonAnnouncementIsSafe(loon_prefs.announcement_public_message) ||
+           !loonAnnouncementIsSafe(loon_prefs.announcement_test_message)) {
+    if (!loonAnnouncementIsSafe(loon_prefs.announcement_public_message)) loon_prefs.announcement_public_message[0] = 0;
+    if (!loonAnnouncementIsSafe(loon_prefs.announcement_test_message)) loon_prefs.announcement_test_message[0] = 0;
     saveLoonPrefs();
   }
 }
@@ -789,9 +837,13 @@ void MyMesh::sendLoonAnnouncement(const mesh::GroupChannel& channel) {
   uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
-  if (loon_prefs.announcement_message[0] && loonAnnouncementIsSafe(loon_prefs.announcement_message)) {
+  const char* message = (loon_public_ready &&
+                         memcmp(channel.hash, loon_public_channel.hash, PATH_HASH_SIZE) == 0)
+                            ? loon_prefs.announcement_public_message
+                            : loon_prefs.announcement_test_message;
+  if (message[0] && loonAnnouncementIsSafe(message)) {
     snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
-             "%s: %s", _prefs.node_name, loon_prefs.announcement_message);
+             "%s: %s", _prefs.node_name, message);
   } else {
     uint64_t seconds = uptime_millis / 1000ULL;
     unsigned long days = seconds / 86400ULL;
@@ -1677,8 +1729,35 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       else if (!strcmp(value, "off") || !strcmp(value, "0")) { *setting = 0; saveLoonPrefs(); strcpy(reply, "OK"); }
       else strcpy(reply, "Err - use on|off");
     }
-  } else if (strncmp(command, "loon.announce.", 14) == 0 &&
-             strncmp(command, "loon.announce.message", 21) != 0) {
+  } else if (strncmp(command, "loon.announce.public.message", 28) == 0 &&
+             (command[28] == 0 || command[28] == ' ')) {
+    const char* value = command + 28; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_prefs.announcement_public_message[0] ? loon_prefs.announcement_public_message : "default");
+    else if (!strcmp(value, "off") || !strcmp(value, "clear")) {
+      loon_prefs.announcement_public_message[0] = 0; saveLoonPrefs(); strcpy(reply, "OK");
+    } else if (strlen(value) >= sizeof(loon_prefs.announcement_public_message)) {
+      strcpy(reply, "Err - message must be 140 characters or fewer");
+    } else if (!loonAnnouncementIsSafe(value)) {
+      strcpy(reply, "Err - message cannot begin with !");
+    } else {
+      StrHelper::strncpy(loon_prefs.announcement_public_message, value, sizeof(loon_prefs.announcement_public_message));
+      saveLoonPrefs(); strcpy(reply, "OK");
+    }
+  } else if (strncmp(command, "loon.announce.test.message", 26) == 0 &&
+             (command[26] == 0 || command[26] == ' ')) {
+    const char* value = command + 26; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_prefs.announcement_test_message[0] ? loon_prefs.announcement_test_message : "default");
+    else if (!strcmp(value, "off") || !strcmp(value, "clear")) {
+      loon_prefs.announcement_test_message[0] = 0; saveLoonPrefs(); strcpy(reply, "OK");
+    } else if (strlen(value) >= sizeof(loon_prefs.announcement_test_message)) {
+      strcpy(reply, "Err - message must be 140 characters or fewer");
+    } else if (!loonAnnouncementIsSafe(value)) {
+      strcpy(reply, "Err - message cannot begin with !");
+    } else {
+      StrHelper::strncpy(loon_prefs.announcement_test_message, value, sizeof(loon_prefs.announcement_test_message));
+      saveLoonPrefs(); strcpy(reply, "OK");
+    }
+  } else if (strncmp(command, "loon.announce.", 14) == 0) {
     uint8_t* setting = NULL;
     const char* value = NULL;
     if (strncmp(command + 14, "public", 6) == 0 && (command[20] == 0 || command[20] == ' ')) {
@@ -1711,20 +1790,6 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
     if (!*value) snprintf(reply, 160, "%u", loon_prefs.busy_threshold);
     else { int n = atoi(value); if (n < 0 || n > 100) strcpy(reply, "Err - 0..100");
       else { loon_prefs.busy_threshold = n; saveLoonPrefs(); strcpy(reply, "OK"); } }
-  } else if (strncmp(command, "loon.announce.message", 21) == 0 &&
-             (command[21] == 0 || command[21] == ' ')) {
-    const char* value = command + 21; while (*value == ' ') value++;
-    if (!*value) snprintf(reply, 160, "%s", loon_prefs.announcement_message[0] ? loon_prefs.announcement_message : "off");
-    else if (!strcmp(value, "off") || !strcmp(value, "clear")) {
-      loon_prefs.announcement_message[0] = 0; saveLoonPrefs(); strcpy(reply, "OK");
-    } else if (strlen(value) >= sizeof(loon_prefs.announcement_message)) {
-      strcpy(reply, "Err - message must be 140 characters or fewer");
-    } else if (!loonAnnouncementIsSafe(value)) {
-      strcpy(reply, "Err - message cannot begin with !");
-    } else {
-      StrHelper::strncpy(loon_prefs.announcement_message, value, sizeof(loon_prefs.announcement_message));
-      saveLoonPrefs(); strcpy(reply, "OK");
-    }
   }
 #endif
   else{

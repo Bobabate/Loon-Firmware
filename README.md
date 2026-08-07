@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.1.5-rc3.
+- Current release: v0.1.5-rc4.
 
 ## Features
 
@@ -70,7 +70,7 @@ entire message. Loon ignores its own messages.
 On `#test`, `!help` returns:
 
 ```text
-Loon commands: ping, roll, about. Use the ! prefix.
+Loon: Commands: ping, roll, about. Use the ! prefix.
 ```
 
 Public does not accept `!help`. The `#test` help response deliberately contains
@@ -80,7 +80,7 @@ exact-match bot.
 `!roll` rolls one six-sided die. It is restricted to `#test`.
 
 ```text
-🎲 @[your-name] | 1d6: 4
+Loon: Roll @[your-name] | 1d6: 4
 ```
 
 `!about` returns the firmware version and the standard MeshCore owner message:

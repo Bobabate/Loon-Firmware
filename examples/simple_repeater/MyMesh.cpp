@@ -735,7 +735,8 @@ void MyMesh::sendLoonReply(const mesh::GroupChannel& channel, const char* text) 
   uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
-  StrHelper::strncpy(reinterpret_cast<char*>(&temp[5]), text, LOON_MAX_ANNOUNCEMENT_TEXT + 1);
+  snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
+           "%s: %s", _prefs.node_name, text);
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* reply = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);
   if (reply) sendFlood(reply, SERVER_RESPONSE_DELAY + delay_ms, 3);
@@ -793,11 +794,11 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
-    sendLoonReply(channel, "Loon commands: ping, roll, about. Use the ! prefix.");
+    sendLoonReply(channel, "Commands: ping, roll, about. Use the ! prefix.");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);
-    snprintf(result, sizeof(result), "🎲 @%s | 1d6: %lu", sender, (unsigned long)value);
+    snprintf(result, sizeof(result), "Roll @%s | 1d6: %lu", sender, (unsigned long)value);
     sendLoonReply(channel, result);
   } else {
     char about[LOON_MAX_ANNOUNCEMENT_TEXT + 1];

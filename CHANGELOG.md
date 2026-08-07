@@ -5,6 +5,11 @@ are tracked in the upstream repository.
 
 ## Unreleased
 
+- Prefix every command reply with the configured node name so MeshCore renders
+  ping, help, roll, and about under one consistent sender identity.
+- Remove the dice emoji from the roll title so it cannot be mistaken for a
+  separate sender identity.
+
 - Give Public and `#test` independent custom announcement text.
 - Migrate an existing shared custom message to both channels; clearing either
   channel's text restores its compact status announcement.

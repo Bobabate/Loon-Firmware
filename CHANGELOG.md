@@ -3,7 +3,7 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
-## Unreleased
+## 0.1.5 - 2026-08-07
 
 - Prefix every command reply with the configured node name so MeshCore renders
   ping, help, roll, and about under one consistent sender identity.

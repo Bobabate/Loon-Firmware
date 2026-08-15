@@ -3,6 +3,11 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## Unreleased
+
+- Update the Heltec V3 Loon target to the MeshCore v1.17.1 source revision
+  (`d929643`) without changing Loon's commands or bot behaviour.
+
 ## 0.1.5 - 2026-08-07
 
 - Prefix every command reply with the configured node name so MeshCore renders

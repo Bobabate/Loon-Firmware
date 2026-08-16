@@ -3,6 +3,16 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 0.2.0-rc2 - 2026-08-16
+
+- Add an optional ESP32 MeshCore-to-Discord webhook bridge.
+- Forward one explicitly configured standard channel, with no `all` mode.
+- Present each MeshCore message as one Discord post using its sender name.
+- Store Wi-Fi, webhook, and channel settings in checksummed device preferences.
+- Add a bounded RAM queue, retry pacing, Wi-Fi reconnect, safe mention handling,
+  and authenticated CLI configuration commands.
+- Keep non-ESP32 targets building without webhook support.
+
 ## 0.2.0-rc1 - 2026-08-15
 
 - Update the Heltec V3 Loon target to the MeshCore v1.17.1 source revision

@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.2.0-rc1 (prerelease).
+- Current release: v0.2.0-rc2 (prerelease).
 
 ## Features
 
@@ -50,8 +50,11 @@ include a region or preset name.
 - Duplicate/rate protection and busy-channel delay reduce unnecessary airtime.
 - OLED shows the normal repeater information.
 - Existing authenticated MeshCore remote administration remains available.
+- Heltec V3 can forward one selected MeshCore channel to Discord, one message
+  per post, using the MeshCore sender as the webhook username.
 - Wi-Fi is off during normal operation; the existing authenticated OTA mode is
-  available when deliberately started by an administrator.
+  available when deliberately started by an administrator. Configuring the
+  webhook bridge also enables Wi-Fi station mode.
 
 ## Bot commands
 
@@ -191,6 +194,12 @@ Management. Commands with no value display their current setting.
 | `loon.daily.hour [0..23]` | Read or set the local hour for daily announcements. |
 | `loon.timezone [-720..840]` | Read or set the UTC offset in minutes. |
 | `loon.busy.threshold [0..100]` | Read or set the percentage where ping delay begins. |
+| `wifi.status` | Show Wi-Fi state, IP address, and webhook queue depth. |
+| `wifi.ssid [NAME]` | Read or set the Wi-Fi network name. |
+| `wifi.pwd [PASSWORD\|clear]` | Set or clear the Wi-Fi password; reading shows only whether it is set. |
+| `wifi.webhook.channel [Public\|#CHANNEL]` | Select exactly one standard MeshCore channel to forward. |
+| `wifi.webhook [URL\|test\|clear]` | Set, test, or clear the Discord webhook without printing its URL. |
+| `wifi.connect` | Request an immediate Wi-Fi connection. |
 
 Examples:
 
@@ -205,6 +214,12 @@ loon.announce.test.message Test channel check-in
 loon.daily.hour 21
 loon.timezone -240
 loon.busy.threshold 25
+wifi.ssid MyNetwork
+wifi.pwd MyPassword
+wifi.webhook.channel #test
+wifi.webhook https://discord.com/api/webhooks/...
+wifi.connect
+wifi.webhook test
 ```
 
 Successful changes reply `OK` and are saved immediately. With no argument,
@@ -214,6 +229,14 @@ return that channel to the default compact status announcement.
 `loon.ping.public` controls only `!ping` on Public. `loon.ping.test` controls
 `!ping` on `#test`. The `#test`-only utility commands remain available whenever
 the `#test` command channel is enabled.
+
+The webhook bridge is optional and currently available on ESP32 targets such
+as the Heltec V3. It forwards only the explicitly selected channel; `all` is
+deliberately rejected. Messages retain their original text, Discord mentions
+are disabled, and a bounded RAM queue retries temporary delivery failures.
+Repeater operation continues when Wi-Fi or Discord is unavailable. HTTPS uses
+encrypted `setInsecure()` mode, so Discord's certificate is not verified.
+Treat the webhook URL as a password and rotate it if exposed.
 
 ## Useful inherited MeshCore commands
 

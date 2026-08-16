@@ -20,6 +20,25 @@ and keeps repeater operation as the highest priority.
 - OLED repeater diagnostics.
 - Busy-channel deferral, deduplication, loop prevention, and rate limiting.
 - Authenticated Wi-Fi OTA for firmware maintenance.
+- Optional one-way MeshCore-to-Discord webhook bridge on ESP32 hardware.
+
+## Discord webhook bridge
+
+On ESP32 targets such as the Heltec V3, Loon can forward one explicitly
+selected MeshCore channel to one Discord webhook. Each MeshCore message becomes
+one Discord message, with the MeshCore sender as the webhook username and the
+original message text unchanged. Discord mentions are disabled.
+
+The bridge is disabled until Wi-Fi and a webhook URL are configured. It uses a
+bounded 32-message RAM queue, retries failed deliveries, and drops the oldest
+entry if the queue fills. Repeater operation continues when Wi-Fi or Discord is
+unavailable. HTTPS uses the ESP32 `setInsecure()` mode, matching the proven
+reference implementation: traffic is encrypted, but the server certificate is
+not verified.
+
+Only one named channel can be selected. There is deliberately no `all` option.
+The selected standard channel is derived from its name, such as `Public`,
+`#test`, or `#jokes`.
 
 ## Ping response
 
@@ -107,6 +126,12 @@ loon.announce.message [text|clear]
 loon.daily.hour 0..23
 loon.timezone -720..840
 loon.busy.threshold 0..100
+wifi.status
+wifi.ssid [name]
+wifi.pwd [password|clear]
+wifi.webhook.channel [Public|#channel]
+wifi.webhook [https://discord.com/api/webhooks/...|test|clear]
+wifi.connect
 ```
 
 `loon.timezone` is the UTC offset in minutes. Toronto is `-300` in standard
@@ -115,3 +140,6 @@ so announcements wait until MeshCore provides a valid clock.
 
 Administrator passwords compiled into source or firmware are public defaults.
 Change the password during device provisioning and never reuse it elsewhere.
+Wi-Fi passwords and webhook URLs are stored in device preferences and are not
+printed by status commands. Treat a Discord webhook URL as a password and
+rotate it if it is exposed.

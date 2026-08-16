@@ -71,6 +71,14 @@
 #define LOON_COMMAND_COOLDOWN_MS     10000UL
 #define LOON_COMMAND_SENDER_SLOTS    8
 #define LOON_MAX_ANNOUNCEMENT_TEXT   (MAX_PACKET_PAYLOAD - CIPHER_BLOCK_SIZE - 5)
+#if defined(ESP32)
+#define LOON_WEBHOOK_PREFS_MAGIC      0x4C57484BUL
+#define LOON_WEBHOOK_PREFS_VERSION    1
+#define LOON_WEBHOOK_PREFS_FILE       "/loon_webhook"
+#define LOON_WEBHOOK_MIN_INTERVAL_MS  200UL
+#define LOON_WEBHOOK_RETRY_DELAY_MS   2000UL
+#define LOON_WIFI_RETRY_DELAY_MS      15000UL
+#endif
 
 static const uint8_t LOON_PUBLIC_SECRET[16] = {
   0x8b, 0x33, 0x87, 0xe9, 0xc5, 0xcd, 0xea, 0x6a,
@@ -159,6 +167,33 @@ static bool loonAnnouncementIsSafe(const char* text) {
 static const char* loonModeName(uint8_t mode) {
   return mode == LOON_ANNOUNCE_HOURLY ? "hourly" : mode == LOON_ANNOUNCE_DAILY ? "daily" : "off";
 }
+
+#if defined(ESP32)
+static void loonJsonEscape(const char* src, char* dest, size_t dest_len) {
+  if (!dest_len) return;
+  size_t used = 0;
+  while (*src && used + 1 < dest_len) {
+    const char* escaped = NULL;
+    switch (*src) {
+      case '\\': escaped = "\\\\"; break;
+      case '"': escaped = "\\\""; break;
+      case '\n': escaped = "\\n"; break;
+      case '\r': escaped = "\\r"; break;
+      case '\t': escaped = "\\t"; break;
+      default: break;
+    }
+    if (escaped) {
+      if (used + 2 >= dest_len) break;
+      dest[used++] = escaped[0];
+      dest[used++] = escaped[1];
+    } else if ((uint8_t)*src >= 0x20) {
+      dest[used++] = *src;
+    }
+    src++;
+  }
+  dest[used] = 0;
+}
+#endif
 #endif
 
 void MyMesh::putNeighbour(const mesh::Identity &id, uint32_t timestamp, float snr) {
@@ -652,6 +687,164 @@ void MyMesh::saveLoonPrefs() {
   }
 }
 
+#if defined(ESP32)
+uint32_t MyMesh::calcLoonWebhookPrefsChecksum() const {
+  return calcLoonChecksum(&loon_webhook_prefs, offsetof(LoonWebhookPrefs, checksum));
+}
+
+void MyMesh::resetLoonWebhookPrefs() {
+  memset(&loon_webhook_prefs, 0, sizeof(loon_webhook_prefs));
+  loon_webhook_prefs.magic = LOON_WEBHOOK_PREFS_MAGIC;
+  loon_webhook_prefs.version = LOON_WEBHOOK_PREFS_VERSION;
+  StrHelper::strncpy(loon_webhook_prefs.channel_name, "#test", sizeof(loon_webhook_prefs.channel_name));
+  loon_webhook_prefs.checksum = calcLoonWebhookPrefsChecksum();
+}
+
+void MyMesh::loadLoonWebhookPrefs() {
+  resetLoonWebhookPrefs();
+  if (!_fs->exists(LOON_WEBHOOK_PREFS_FILE)) return;
+  File file = _fs->open(LOON_WEBHOOK_PREFS_FILE);
+  if (!file || file.size() != sizeof(loon_webhook_prefs)) {
+    if (file) file.close();
+    return;
+  }
+  LoonWebhookPrefs loaded;
+  bool read_ok = file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) == sizeof(loaded);
+  file.close();
+  bool valid = read_ok && loaded.magic == LOON_WEBHOOK_PREFS_MAGIC &&
+               loaded.version == LOON_WEBHOOK_PREFS_VERSION &&
+               loaded.checksum == calcLoonChecksum(&loaded, offsetof(LoonWebhookPrefs, checksum)) &&
+               loaded.wifi_ssid[sizeof(loaded.wifi_ssid) - 1] == 0 &&
+               loaded.wifi_password[sizeof(loaded.wifi_password) - 1] == 0 &&
+               loaded.discord_webhook_url[sizeof(loaded.discord_webhook_url) - 1] == 0 &&
+               loaded.channel_name[sizeof(loaded.channel_name) - 1] == 0;
+  if (valid) loon_webhook_prefs = loaded;
+}
+
+void MyMesh::saveLoonWebhookPrefs() {
+  loon_webhook_prefs.checksum = calcLoonWebhookPrefsChecksum();
+  File file = _fs->open(LOON_WEBHOOK_PREFS_FILE, "w", true);
+  if (file) {
+    file.write(reinterpret_cast<const uint8_t*>(&loon_webhook_prefs), sizeof(loon_webhook_prefs));
+    file.close();
+  }
+}
+
+void MyMesh::initLoonWebhookChannel() {
+  memset(&loon_webhook_channel, 0, sizeof(loon_webhook_channel));
+  loon_webhook_channel_ready = false;
+  if (!loon_webhook_prefs.channel_name[0]) return;
+  mesh::Utils::sha256(loon_webhook_channel.secret, CIPHER_KEY_SIZE,
+                      reinterpret_cast<const uint8_t*>(loon_webhook_prefs.channel_name),
+                      strlen(loon_webhook_prefs.channel_name));
+  mesh::Utils::sha256(loon_webhook_channel.hash, sizeof(loon_webhook_channel.hash),
+                      loon_webhook_channel.secret, CIPHER_KEY_SIZE);
+  loon_webhook_channel_ready = true;
+}
+
+void MyMesh::initLoonWifi() {
+  if (!loon_webhook_prefs.wifi_ssid[0] || !loon_webhook_prefs.wifi_password[0]) return;
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(loon_webhook_prefs.wifi_ssid, loon_webhook_prefs.wifi_password);
+  loon_next_wifi_attempt_at = futureMillis(LOON_WIFI_RETRY_DELAY_MS);
+}
+
+bool MyMesh::isLoonWebhookChannel(const mesh::GroupChannel& channel) const {
+  return loon_webhook_channel_ready &&
+         memcmp(channel.hash, loon_webhook_channel.hash, PATH_HASH_SIZE) == 0;
+}
+
+void MyMesh::queueLoonWebhook(const char* sender, const char* body) {
+  if (!loon_webhook_prefs.discord_webhook_url[0] || !loon_webhook_channel_ready) return;
+  if (loon_webhook_count >= LOON_WEBHOOK_QUEUE_SIZE) {
+    loon_webhook_head = (uint8_t)((loon_webhook_head + 1) % LOON_WEBHOOK_QUEUE_SIZE);
+    loon_webhook_count--;
+  }
+  LoonWebhookItem* item = &loon_webhook_queue[loon_webhook_tail];
+  StrHelper::strncpy(item->sender, sender && sender[0] ? sender : "Unknown", sizeof(item->sender));
+  StrHelper::strncpy(item->body, body ? body : "", sizeof(item->body));
+  loon_webhook_tail = (uint8_t)((loon_webhook_tail + 1) % LOON_WEBHOOK_QUEUE_SIZE);
+  loon_webhook_count++;
+  loon_next_webhook_attempt_at = 0;
+}
+
+void MyMesh::queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body) {
+  if (!isLoonWebhookChannel(channel)) return;
+  queueLoonWebhook(sender, body);
+}
+
+void MyMesh::pumpLoonWebhook() {
+  if (!loon_webhook_count) return;
+  if (WiFi.status() != WL_CONNECTED) {
+    if (loon_next_wifi_attempt_at && millisHasNowPassed(loon_next_wifi_attempt_at)) initLoonWifi();
+    return;
+  }
+  if (loon_next_webhook_attempt_at && !millisHasNowPassed(loon_next_webhook_attempt_at)) return;
+
+  LoonWebhookItem* item = &loon_webhook_queue[loon_webhook_head];
+  char escaped_sender[80];
+  char escaped_body[640];
+  loonJsonEscape(item->sender, escaped_sender, sizeof(escaped_sender));
+  loonJsonEscape(item->body, escaped_body, sizeof(escaped_body));
+  char payload[896];
+  snprintf(payload, sizeof(payload),
+           "{\"username\":\"%s\",\"content\":\"%s\",\"allowed_mentions\":{\"parse\":[]}}",
+           escaped_sender, escaped_body);
+
+  char url_buf[sizeof(loon_webhook_prefs.discord_webhook_url)];
+  StrHelper::strncpy(url_buf, loon_webhook_prefs.discord_webhook_url, sizeof(url_buf));
+  char* url = url_buf;
+  while (*url && (uint8_t)*url <= ' ') url++;
+  char* end = url + strlen(url);
+  while (end > url && (uint8_t)end[-1] <= ' ') *--end = 0;
+  const char* scheme = strstr(url, "https://");
+  if (scheme != url) {
+    loon_next_webhook_attempt_at = futureMillis(LOON_WEBHOOK_RETRY_DELAY_MS);
+    return;
+  }
+  const char* host = scheme + 8;
+  const char* path = strchr(host, '/');
+  char host_buf[128];
+  if (path) {
+    size_t host_len = min((size_t)(path - host), sizeof(host_buf) - 1);
+    memcpy(host_buf, host, host_len);
+    host_buf[host_len] = 0;
+  } else {
+    StrHelper::strncpy(host_buf, host, sizeof(host_buf));
+    path = "/";
+  }
+
+  int code = -1;
+  WiFiClientSecure client;
+  client.setInsecure();
+  if (client.connect(host_buf, 443)) {
+    client.printf("POST %s HTTP/1.1\r\n", path);
+    client.printf("Host: %s\r\n", host_buf);
+    client.print("User-Agent: Loon-Firmware\r\n");
+    client.print("Content-Type: application/json\r\n");
+    client.printf("Content-Length: %u\r\n", (unsigned)strlen(payload));
+    client.print("Connection: close\r\n\r\n");
+    client.write(reinterpret_cast<const uint8_t*>(payload), strlen(payload));
+    String status = client.readStringUntil('\n');
+    status.trim();
+    if (status.startsWith("HTTP/")) {
+      int space = status.indexOf(' ');
+      if (space > 0) code = status.substring(space + 1).toInt();
+    }
+    client.stop();
+  }
+
+  if (code >= 200 && code < 300) {
+    loon_webhook_head = (uint8_t)((loon_webhook_head + 1) % LOON_WEBHOOK_QUEUE_SIZE);
+    loon_webhook_count--;
+    loon_next_webhook_attempt_at = futureMillis(LOON_WEBHOOK_MIN_INTERVAL_MS);
+  } else {
+    loon_next_webhook_attempt_at = futureMillis(LOON_WEBHOOK_RETRY_DELAY_MS);
+  }
+}
+#endif
+
 void MyMesh::initLoonChannels() {
   memset(&loon_public_channel, 0, sizeof(loon_public_channel));
   memcpy(loon_public_channel.secret, LOON_PUBLIC_SECRET, sizeof(LOON_PUBLIC_SECRET));
@@ -713,6 +906,13 @@ int MyMesh::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channel
     channels[count++] = loon_public_channel;
   if (max_matches > count && loon_test_ready && memcmp(hash, loon_test_channel.hash, PATH_HASH_SIZE) == 0)
     channels[count++] = loon_test_channel;
+#if defined(ESP32)
+  bool already_added = (loon_public_ready && memcmp(hash, loon_public_channel.hash, PATH_HASH_SIZE) == 0) ||
+                       (loon_test_ready && memcmp(hash, loon_test_channel.hash, PATH_HASH_SIZE) == 0);
+  if (max_matches > count && !already_added && loon_webhook_channel_ready &&
+      memcmp(hash, loon_webhook_channel.hash, PATH_HASH_SIZE) == 0)
+    channels[count++] = loon_webhook_channel;
+#endif
   return count;
 }
 
@@ -730,7 +930,14 @@ void MyMesh::sendLoonPing(const mesh::GroupChannel& channel, const char* sender,
            _prefs.node_name, sender, path, (int)_radio->getLastRSSI(), packet->getSNR(), busy);
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* reply = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);
-  if (reply) sendFlood(reply, SERVER_RESPONSE_DELAY + delay_ms, 3);
+  if (reply) {
+    sendFlood(reply, SERVER_RESPONSE_DELAY + delay_ms, 3);
+#if defined(ESP32)
+    const char* full = reinterpret_cast<char*>(&temp[5]);
+    const char* sep = strstr(full, ": ");
+    queueLoonWebhookMessage(channel, _prefs.node_name, sep ? sep + 2 : full);
+#endif
+  }
 }
 
 void MyMesh::sendLoonReply(const mesh::GroupChannel& channel, const char* text) {
@@ -744,14 +951,25 @@ void MyMesh::sendLoonReply(const mesh::GroupChannel& channel, const char* text) 
            "%s: %s", _prefs.node_name, text);
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* reply = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);
-  if (reply) sendFlood(reply, SERVER_RESPONSE_DELAY + delay_ms, 3);
+  if (reply) {
+    sendFlood(reply, SERVER_RESPONSE_DELAY + delay_ms, 3);
+#if defined(ESP32)
+    queueLoonWebhookMessage(channel, _prefs.node_name, text);
+#endif
+  }
 }
 
 void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel& channel,
                              uint8_t* data, size_t len) {
   if (type != PAYLOAD_TYPE_GRP_TXT || len <= 5 || len >= MAX_PACKET_PAYLOAD) return;
-  bool is_public;
-  if (!isLoonChannel(channel, is_public)) return;
+  bool is_public = false;
+  bool is_loon_channel = isLoonChannel(channel, is_public);
+#if defined(ESP32)
+  bool is_webhook_channel = isLoonWebhookChannel(channel);
+  if (!is_loon_channel && !is_webhook_channel) return;
+#else
+  if (!is_loon_channel) return;
+#endif
   if ((data[4] >> 2) != TXT_TYPE_PLAIN) return;
   data[len] = 0;
   char* text = reinterpret_cast<char*>(&data[5]);
@@ -766,6 +984,10 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
     body = sep + 2;
   }
   if (!sender[0]) StrHelper::strncpy(sender, "Unknown", sizeof(sender));
+#if defined(ESP32)
+  if (is_webhook_channel) queueLoonWebhookMessage(channel, sender, body);
+#endif
+  if (!is_loon_channel) return;
   if (strcmp(sender, _prefs.node_name) == 0) return;
   bool is_ping = loonCommandIs(body, "!ping");
   bool is_help = !is_public && loonCommandIs(body, "!help");
@@ -861,7 +1083,14 @@ void MyMesh::sendLoonAnnouncement(const mesh::GroupChannel& channel) {
   }
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* pkt = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);
-  if (pkt) sendFlood(pkt, SERVER_RESPONSE_DELAY, 3);
+  if (pkt) {
+    sendFlood(pkt, SERVER_RESPONSE_DELAY, 3);
+#if defined(ESP32)
+    const char* full = reinterpret_cast<char*>(&temp[5]);
+    const char* sep = strstr(full, ": ");
+    queueLoonWebhookMessage(channel, _prefs.node_name, sep ? sep + 2 : full);
+#endif
+  }
 }
 #endif
 
@@ -1380,6 +1609,12 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
   memset(loon_command_sender_times, 0, sizeof(loon_command_sender_times));
   loon_busy_sample_at = loon_busy_tx_at = loon_busy_rx_at = 0;
   loon_busy_percent = 0;
+#if defined(ESP32)
+  resetLoonWebhookPrefs();
+  loon_webhook_channel_ready = false;
+  loon_next_wifi_attempt_at = loon_next_webhook_attempt_at = 0;
+  loon_webhook_head = loon_webhook_tail = loon_webhook_count = 0;
+#endif
 #endif
 }
 
@@ -1394,6 +1629,11 @@ void MyMesh::begin(FILESYSTEM *fs) {
 #ifdef LOON_FIRMWARE
   loadLoonPrefs();
   initLoonChannels();
+#if defined(ESP32)
+  loadLoonWebhookPrefs();
+  initLoonWebhookChannel();
+  initLoonWifi();
+#endif
 #endif
 
   // establish default-scope
@@ -1814,6 +2054,77 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
     else { int n = atoi(value); if (n < 0 || n > 100) strcpy(reply, "Err - 0..100");
       else { loon_prefs.busy_threshold = n; saveLoonPrefs(); strcpy(reply, "OK"); } }
   }
+#if defined(ESP32)
+  else if (strcmp(command, "wifi.status") == 0) {
+    if (!loon_webhook_prefs.wifi_ssid[0]) strcpy(reply, "wifi: off");
+    else if (WiFi.status() == WL_CONNECTED) {
+      String ip = WiFi.localIP().toString();
+      snprintf(reply, 160, "wifi: ok ip=%s queue=%u", ip.c_str(), loon_webhook_count);
+    } else snprintf(reply, 160, "wifi: err queue=%u", loon_webhook_count);
+  } else if (strncmp(command, "wifi.ssid", 9) == 0 && (command[9] == 0 || command[9] == ' ')) {
+    const char* value = command + 9; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_webhook_prefs.wifi_ssid[0] ? loon_webhook_prefs.wifi_ssid : "empty");
+    else if (strlen(value) >= sizeof(loon_webhook_prefs.wifi_ssid)) strcpy(reply, "Err - SSID too long");
+    else {
+      StrHelper::strncpy(loon_webhook_prefs.wifi_ssid, value, sizeof(loon_webhook_prefs.wifi_ssid));
+      saveLoonWebhookPrefs(); initLoonWifi(); strcpy(reply, "OK");
+    }
+  } else if (strncmp(command, "wifi.pwd", 8) == 0 && (command[8] == 0 || command[8] == ' ')) {
+    const char* value = command + 8; while (*value == ' ') value++;
+    if (!*value) {
+      if (loon_webhook_prefs.wifi_password[0])
+        snprintf(reply, 160, "set (len=%u)", (unsigned)strlen(loon_webhook_prefs.wifi_password));
+      else strcpy(reply, "empty");
+    } else if (!strcmp(value, "clear")) {
+      loon_webhook_prefs.wifi_password[0] = 0; saveLoonWebhookPrefs(); WiFi.disconnect(); strcpy(reply, "OK");
+    } else if (strlen(value) >= sizeof(loon_webhook_prefs.wifi_password)) strcpy(reply, "Err - password too long");
+    else {
+      StrHelper::strncpy(loon_webhook_prefs.wifi_password, value, sizeof(loon_webhook_prefs.wifi_password));
+      saveLoonWebhookPrefs(); initLoonWifi(); strcpy(reply, "OK");
+    }
+  } else if (strncmp(command, "wifi.webhook.channel", 20) == 0 &&
+             (command[20] == 0 || command[20] == ' ')) {
+    const char* value = command + 20; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_webhook_prefs.channel_name);
+    else if (!strcasecmp(value, "all")) strcpy(reply, "Err - one channel only");
+    else {
+      const char* normalized = !strcasecmp(value, "public") ? "Public" :
+                               (!strcasecmp(value, "test") ? "#test" : value);
+      if (strlen(normalized) >= sizeof(loon_webhook_prefs.channel_name)) strcpy(reply, "Err - channel too long");
+      else {
+        StrHelper::strncpy(loon_webhook_prefs.channel_name, normalized, sizeof(loon_webhook_prefs.channel_name));
+        loon_webhook_head = loon_webhook_tail = loon_webhook_count = 0;
+        saveLoonWebhookPrefs(); initLoonWebhookChannel(); strcpy(reply, "OK");
+      }
+    }
+  } else if (strncmp(command, "wifi.webhook", 12) == 0 &&
+             (command[12] == 0 || command[12] == ' ')) {
+    const char* value = command + 12; while (*value == ' ') value++;
+    if (!*value) {
+      if (loon_webhook_prefs.discord_webhook_url[0])
+        snprintf(reply, 160, "set (len=%u) channel=%s", (unsigned)strlen(loon_webhook_prefs.discord_webhook_url),
+                 loon_webhook_prefs.channel_name);
+      else strcpy(reply, "empty");
+    } else if (!strcmp(value, "test")) {
+      if (!loon_webhook_prefs.discord_webhook_url[0]) strcpy(reply, "Err - webhook not set");
+      else { queueLoonWebhook("WebhookTest", "test message"); strcpy(reply, "OK - queued"); }
+    } else if (!strcmp(value, "clear")) {
+      loon_webhook_prefs.discord_webhook_url[0] = 0;
+      loon_webhook_head = loon_webhook_tail = loon_webhook_count = 0;
+      saveLoonWebhookPrefs(); strcpy(reply, "OK");
+    } else if (strncmp(value, "https://", 8) != 0) {
+      strcpy(reply, "Err - URL must begin https://");
+    } else if (strlen(value) >= sizeof(loon_webhook_prefs.discord_webhook_url)) strcpy(reply, "Err - webhook URL too long");
+    else {
+      StrHelper::strncpy(loon_webhook_prefs.discord_webhook_url, value,
+                         sizeof(loon_webhook_prefs.discord_webhook_url));
+      loon_webhook_head = loon_webhook_tail = loon_webhook_count = 0;
+      saveLoonWebhookPrefs(); strcpy(reply, "OK");
+    }
+  } else if (strcmp(command, "wifi.connect") == 0) {
+    initLoonWifi(); strcpy(reply, "OK");
+  }
+#endif
 #endif
   else{
     _cli.handleCommand(sender_timestamp, command, reply);  // common CLI commands
@@ -1829,6 +2140,9 @@ void MyMesh::loop() {
 
 #ifdef LOON_FIRMWARE
   calcLoonBusyPercent();
+#if defined(ESP32)
+  pumpLoonWebhook();
+#endif
   if (loon_next_public_announcement && millisHasNowPassed(loon_next_public_announcement)) {
     if (loon_prefs.announce_public && getRTCClock()->getCurrentTime() >= LOON_VALID_CLOCK)
       sendLoonAnnouncement(loon_public_channel);

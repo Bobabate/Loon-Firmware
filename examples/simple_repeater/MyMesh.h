@@ -12,6 +12,10 @@
 #elif defined(ESP32)
   #include <SPIFFS.h>
   using File = fs::File;
+#if defined(LOON_FIRMWARE)
+  #include <WiFi.h>
+  #include <WiFiClientSecure.h>
+#endif
 #endif
 
 #ifdef WITH_RS232_BRIDGE
@@ -127,6 +131,38 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   unsigned long loon_command_sender_times[8];
   uint32_t loon_busy_sample_at, loon_busy_tx_at, loon_busy_rx_at;
   uint8_t loon_busy_percent;
+
+#if defined(ESP32)
+  struct LoonWebhookPrefs {
+    uint32_t magic;
+    uint8_t version;
+    char wifi_ssid[32];
+    char wifi_password[64];
+    char discord_webhook_url[192];
+    char channel_name[40];
+    uint32_t checksum;
+  } loon_webhook_prefs;
+  static const uint8_t LOON_WEBHOOK_QUEUE_SIZE = 32;
+  struct LoonWebhookItem {
+    char sender[40];
+    char body[320];
+  } loon_webhook_queue[LOON_WEBHOOK_QUEUE_SIZE];
+  mesh::GroupChannel loon_webhook_channel;
+  bool loon_webhook_channel_ready;
+  unsigned long loon_next_wifi_attempt_at, loon_next_webhook_attempt_at;
+  uint8_t loon_webhook_head, loon_webhook_tail, loon_webhook_count;
+
+  void resetLoonWebhookPrefs();
+  void loadLoonWebhookPrefs();
+  void saveLoonWebhookPrefs();
+  uint32_t calcLoonWebhookPrefsChecksum() const;
+  void initLoonWebhookChannel();
+  void initLoonWifi();
+  bool isLoonWebhookChannel(const mesh::GroupChannel& channel) const;
+  void queueLoonWebhook(const char* sender, const char* body);
+  void queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body);
+  void pumpLoonWebhook();
+#endif
 
   void initLoonChannels();
   void resetLoonPrefs();

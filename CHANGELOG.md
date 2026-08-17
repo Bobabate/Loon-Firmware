@@ -3,6 +3,11 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 0.2.0-rc3 - 2026-08-17
+
+- Fix Discord webhook forwarding from the standard Public channel by using
+  MeshCore's fixed Public channel key instead of deriving a key from its name.
+
 ## 0.2.0-rc2 - 2026-08-16
 
 - Add an optional ESP32 MeshCore-to-Discord webhook bridge.

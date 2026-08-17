@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.2.0-rc2 (prerelease).
+- Current release: v0.2.0-rc3 (prerelease).
 
 ## Features
 

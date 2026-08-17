@@ -734,9 +734,15 @@ void MyMesh::initLoonWebhookChannel() {
   memset(&loon_webhook_channel, 0, sizeof(loon_webhook_channel));
   loon_webhook_channel_ready = false;
   if (!loon_webhook_prefs.channel_name[0]) return;
-  mesh::Utils::sha256(loon_webhook_channel.secret, CIPHER_KEY_SIZE,
-                      reinterpret_cast<const uint8_t*>(loon_webhook_prefs.channel_name),
-                      strlen(loon_webhook_prefs.channel_name));
+  // MeshCore's Public channel uses its standard fixed key, not the key that
+  // would be produced by hashing the literal channel name "Public".
+  if (!strcasecmp(loon_webhook_prefs.channel_name, "Public")) {
+    memcpy(loon_webhook_channel.secret, LOON_PUBLIC_SECRET, sizeof(LOON_PUBLIC_SECRET));
+  } else {
+    mesh::Utils::sha256(loon_webhook_channel.secret, CIPHER_KEY_SIZE,
+                        reinterpret_cast<const uint8_t*>(loon_webhook_prefs.channel_name),
+                        strlen(loon_webhook_prefs.channel_name));
+  }
   mesh::Utils::sha256(loon_webhook_channel.hash, sizeof(loon_webhook_channel.hash),
                       loon_webhook_channel.secret, CIPHER_KEY_SIZE);
   loon_webhook_channel_ready = true;

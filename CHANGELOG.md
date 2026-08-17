@@ -3,6 +3,16 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L1 - 2026-08-17
+
+- Prevent duplicate Discord webhook posts when Discord accepts a complete request but its HTTP response is lost or malformed.
+- Simplify `!roll` replies to a dice emoji followed by the result.
+- Replace the Loon normal display's radio parameters with node name, Wi-Fi IP,
+  uptime, and current busy percentage.
+- Default Public and `#test` pings and scheduled announcements to off for a
+  clean/full-image installation. Normal application-image updates preserve
+  the device's existing settings.
+
 ## 0.2.0-rc3 - 2026-08-17
 
 - Fix Discord webhook forwarding from the standard Public channel by using

@@ -576,8 +576,6 @@ void MyMesh::resetLoonPrefs() {
   memset(&loon_prefs, 0, sizeof(loon_prefs));
   loon_prefs.magic = LOON_PREFS_MAGIC;
   loon_prefs.version = LOON_PREFS_VERSION;
-  loon_prefs.ping_test = 1;
-  loon_prefs.announce_test = LOON_ANNOUNCE_DAILY;
   loon_prefs.daily_hour = 9;
   loon_prefs.timezone_minutes = -300; // America/Toronto standard-time default; configurable for DST
   loon_prefs.busy_threshold = 20;
@@ -651,17 +649,18 @@ void MyMesh::loadLoonPrefs() {
   LoonPrefs loaded;
   if (file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) != sizeof(loaded)) { file.close(); return; }
   file.close();
+  bool valid_common = loaded.magic == LOON_PREFS_MAGIC &&
+                      loaded.checksum == calcLoonChecksum(&loaded, offsetof(LoonPrefs, checksum)) &&
+                      loaded.ping_public <= 1 && loaded.ping_test <= 1 &&
+                      loaded.announce_public <= LOON_ANNOUNCE_DAILY &&
+                      loaded.announce_test <= LOON_ANNOUNCE_DAILY && loaded.daily_hour <= 23 &&
+                      loaded.timezone_minutes >= -720 && loaded.timezone_minutes <= 840 &&
+                      loaded.busy_threshold <= 100 && loaded.max_busy_delay_secs <= 3600 &&
+                      loaded.announcement_public_message[sizeof(loaded.announcement_public_message) - 1] == 0 &&
+                      loaded.announcement_test_message[sizeof(loaded.announcement_test_message) - 1] == 0;
   LoonPrefs original = loon_prefs;
   loon_prefs = loaded;
-  bool valid = loon_prefs.magic == LOON_PREFS_MAGIC && loon_prefs.version == LOON_PREFS_VERSION &&
-               loon_prefs.checksum == calcLoonPrefsChecksum() &&
-               loon_prefs.ping_public <= 1 && loon_prefs.ping_test <= 1 &&
-               loon_prefs.announce_public <= LOON_ANNOUNCE_DAILY &&
-               loon_prefs.announce_test <= LOON_ANNOUNCE_DAILY && loon_prefs.daily_hour <= 23 &&
-               loon_prefs.timezone_minutes >= -720 && loon_prefs.timezone_minutes <= 840 &&
-               loon_prefs.busy_threshold <= 100 && loon_prefs.max_busy_delay_secs <= 3600 &&
-               loon_prefs.announcement_public_message[sizeof(loon_prefs.announcement_public_message) - 1] == 0 &&
-               loon_prefs.announcement_test_message[sizeof(loon_prefs.announcement_test_message) - 1] == 0;
+  bool valid = valid_common && loon_prefs.version == LOON_PREFS_VERSION;
   if (!valid) loon_prefs = original;
   else if (!loonAnnouncementIsSafe(loon_prefs.announcement_public_message) ||
            !loonAnnouncementIsSafe(loon_prefs.announcement_test_message)) {
@@ -822,6 +821,7 @@ void MyMesh::pumpLoonWebhook() {
   }
 
   int code = -1;
+  bool request_sent = false;
   WiFiClientSecure client;
   client.setInsecure();
   if (client.connect(host_buf, 443)) {
@@ -831,7 +831,8 @@ void MyMesh::pumpLoonWebhook() {
     client.print("Content-Type: application/json\r\n");
     client.printf("Content-Length: %u\r\n", (unsigned)strlen(payload));
     client.print("Connection: close\r\n\r\n");
-    client.write(reinterpret_cast<const uint8_t*>(payload), strlen(payload));
+    size_t payload_len = strlen(payload);
+    request_sent = client.write(reinterpret_cast<const uint8_t*>(payload), payload_len) == payload_len;
     String status = client.readStringUntil('\n');
     status.trim();
     if (status.startsWith("HTTP/")) {
@@ -841,7 +842,10 @@ void MyMesh::pumpLoonWebhook() {
     client.stop();
   }
 
-  if (code >= 200 && code < 300) {
+  // Once the complete request has left Loon, an absent/malformed response is
+  // ambiguous: Discord may already have created the message. Retrying that item
+  // is what produces duplicate posts when the response is lost over Wi-Fi.
+  if ((code >= 200 && code < 300) || (request_sent && code < 0)) {
     loon_webhook_head = (uint8_t)((loon_webhook_head + 1) % LOON_WEBHOOK_QUEUE_SIZE);
     loon_webhook_count--;
     loon_next_webhook_attempt_at = futureMillis(LOON_WEBHOOK_MIN_INTERVAL_MS);
@@ -1031,7 +1035,7 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);
-    snprintf(result, sizeof(result), "Roll @%s | 1d6: %lu", sender, (unsigned long)value);
+    snprintf(result, sizeof(result), "🎲 %lu", (unsigned long)value);
     sendLoonReply(channel, result);
   } else {
     char about[LOON_MAX_ANNOUNCEMENT_TEXT + 1];

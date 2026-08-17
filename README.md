@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v0.2.0-rc3 (prerelease).
+- Current release: v1.17.1-L1.
 
 ## Features
 
@@ -83,7 +83,7 @@ exact-match bot.
 `!roll` rolls one six-sided die. It is restricted to `#test`.
 
 ```text
-Loon: Roll @[your-name] | 1d6: 4
+Loon: 🎲 4
 ```
 
 `!about` returns the firmware version and the standard MeshCore owner message:
@@ -163,8 +163,8 @@ synchronized after a complete power loss.
 
 | Setting | Public | `#test` |
 | --- | --- | --- |
-| Ping | Off | On |
-| Announcement | Off | Daily |
+| Ping | Off | Off |
+| Announcement | Off | Off |
 
 Other defaults:
 

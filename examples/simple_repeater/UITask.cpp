@@ -1,4 +1,5 @@
 #include "UITask.h"
+#include "MyMesh.h"
 #include "target.h"
 #include <Arduino.h>
 #include <helpers/CommonCLI.h>
@@ -29,28 +30,21 @@ static const uint8_t meshcore_logo [] PROGMEM = {
     0xe3, 0xe3, 0x8f, 0xff, 0x1f, 0xfc, 0x3c, 0x0e, 0x1f, 0xf8, 0xff, 0xf8, 0x70, 0x3c, 0x7f, 0xf8, 
 };
 
-void UITask::begin(NodePrefs* node_prefs, const char* build_date, const char* firmware_version) {
+void UITask::begin(MyMesh* mesh, const char* build_date, const char* firmware_version) {
   _prevBtnState = HIGH;
   _auto_off = millis() + AUTO_OFF_MILLIS;
   _started_at = millis();
-  _node_prefs = node_prefs;
+  _mesh = mesh;
+  _node_prefs = mesh->getNodePrefs();
   _display->turnOn();
 
 #if defined(PIN_USER_BTN) && defined(DISPLAY_CLASS)
   user_btn.begin();
 #endif
 
-  // strip off dash and commit hash by changing dash to null terminator
-  // e.g: v1.2.3-abcdef -> v1.2.3
-  char *version = strdup(firmware_version);
-  char *dash = strchr(version, '-');
-  if(dash){
-    *dash = 0;
-  }
-
-  // v1.2.3 (1 Jan 2025)
-  snprintf(_version_info, sizeof(_version_info), "%s (%s)", version, build_date);
-  free(version);
+  // Keep the complete Loon version, including its -L revision identifier.
+  snprintf(_version_info, sizeof(_version_info), "%s (%s)",
+           firmware_version, build_date);
 }
 
 void UITask::renderCurrScreen() {
@@ -97,6 +91,33 @@ void UITask::renderCurrScreen() {
     _display->setColor(UIColor::primary_txt);
     _display->print(_node_prefs->node_name);
 
+#ifdef LOON_FIRMWARE
+    // Wi-Fi address
+    _display->setCursor(0, 15);
+    if (WiFi.status() == WL_CONNECTED) {
+      String ip = WiFi.localIP().toString();
+      snprintf(tmp, sizeof(tmp), "IP: %s", ip.c_str());
+    } else {
+      StrHelper::strncpy(tmp, "IP: offline", sizeof(tmp));
+    }
+    _display->print(tmp);
+
+    // Uptime
+    uint64_t uptime = _mesh->getUptimeSeconds();
+    uint32_t days = uptime / 86400ULL;
+    uint8_t hours = (uptime / 3600ULL) % 24;
+    uint8_t minutes = (uptime / 60ULL) % 60;
+    uint8_t seconds = uptime % 60;
+    _display->setCursor(0, 30);
+    snprintf(tmp, sizeof(tmp), "UP: %lud %02u:%02u:%02u",
+             (unsigned long)days, hours, minutes, seconds);
+    _display->print(tmp);
+
+    // Current rolling channel-busy estimate
+    _display->setCursor(0, 45);
+    snprintf(tmp, sizeof(tmp), "BUSY: %u%%", _mesh->getLoonBusyPercent());
+    _display->print(tmp);
+#else
     // freq / sf
     _display->setCursor(0, 20);
     sprintf(tmp, "FREQ: %06.3f SF%d", _node_prefs->freq, _node_prefs->sf);
@@ -106,6 +127,7 @@ void UITask::renderCurrScreen() {
     _display->setCursor(0, 30);
     sprintf(tmp, "BW: %03.2f CR: %d", _node_prefs->bw, _node_prefs->cr);
     _display->print(tmp);
+#endif
   }
 }
 

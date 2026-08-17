@@ -76,8 +76,8 @@ deliberately enabled after testing.
 
 | Feature | Public | #test |
 | --- | --- | --- |
-| Ping | Off | On |
-| Announcement | Off | Daily |
+| Ping | Off | Off |
+| Announcement | Off | Off |
 
 Additional defaults:
 

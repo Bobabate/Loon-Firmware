@@ -269,6 +269,10 @@ public:
   NodePrefs* getNodePrefs() {
     return &_prefs;
   }
+#ifdef LOON_FIRMWARE
+  uint64_t getUptimeSeconds() const { return uptime_millis / 1000ULL; }
+  uint8_t getLoonBusyPercent() const { return loon_busy_percent; }
+#endif
 
   void savePrefs() override {
     _cli.savePrefs(_fs);

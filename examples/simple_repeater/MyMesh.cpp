@@ -1003,7 +1003,9 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   bool is_help = !is_public && loonCommandIs(body, "!help");
   bool is_about = !is_public && loonCommandIs(body, "!about");
   bool is_roll = !is_public && loonCommandIs(body, "!roll");
-  if (!is_ping && !is_help && !is_about && !is_roll) return;
+  bool is_rps = !is_public && loonCommandIs(body, "!rps");
+  bool is_rps3 = !is_public && loonCommandIs(body, "!rps3");
+  if (!is_ping && !is_help && !is_about && !is_roll && !is_rps && !is_rps3) return;
   if (is_ping && !(is_public ? loon_prefs.ping_public : loon_prefs.ping_test)) return;
   unsigned long now = millis();
   uint32_t sender_hash = calcLoonChecksum(sender, strlen(sender));
@@ -1031,12 +1033,20 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
-    sendLoonReply(channel, "Commands: ping, roll, about. Use the ! prefix.");
+    sendLoonReply(channel, "Commands: ping, roll, rps, rps3, about. Use the ! prefix.");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);
     snprintf(result, sizeof(result), "🎲 %lu", (unsigned long)value);
     sendLoonReply(channel, result);
+  } else if (is_rps) {
+    static const char* choices[] = {"🪨", "📄", "✂️"};
+    sendLoonReply(channel, choices[getRNG()->nextInt(0, 3)]);
+  } else if (is_rps3) {
+    if (!loon_rps3_remaining) {
+      loon_rps3_remaining = 3;
+      loon_next_rps3_throw = futureMillis(10000UL);
+    }
   } else {
     char about[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     if (_prefs.owner_info[0]) snprintf(about, sizeof(about), "%s | %s", FIRMWARE_VERSION, _prefs.owner_info);
@@ -1615,6 +1625,8 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
   resetLoonPrefs();
   loon_public_ready = loon_test_ready = false;
   loon_next_public_announcement = loon_next_test_announcement = 0;
+  loon_next_rps3_throw = 0;
+  loon_rps3_remaining = 0;
   memset(loon_command_sender_hashes, 0, sizeof(loon_command_sender_hashes));
   memset(loon_command_sender_times, 0, sizeof(loon_command_sender_times));
   loon_busy_sample_at = loon_busy_tx_at = loon_busy_rx_at = 0;
@@ -2162,6 +2174,16 @@ void MyMesh::loop() {
     if (loon_prefs.announce_test && getRTCClock()->getCurrentTime() >= LOON_VALID_CLOCK)
       sendLoonAnnouncement(loon_test_channel);
     loon_next_test_announcement = nextLoonAnnouncement(loon_prefs.announce_test);
+  }
+  if (loon_rps3_remaining && loon_next_rps3_throw && millisHasNowPassed(loon_next_rps3_throw)) {
+    static const char* choices[] = {"🪨", "📄", "✂️"};
+    char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
+    uint8_t round = 4 - loon_rps3_remaining;
+    snprintf(result, sizeof(result), "%u/3 %s", round,
+             choices[getRNG()->nextInt(0, 3)]);
+    sendLoonReply(loon_test_channel, result);
+    loon_rps3_remaining--;
+    loon_next_rps3_throw = loon_rps3_remaining ? futureMillis(10000UL) : 0;
   }
 #endif
 

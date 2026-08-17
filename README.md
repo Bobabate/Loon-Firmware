@@ -41,9 +41,11 @@ include a region or preset name.
 
 - Normal MeshCore repeater operation remains the priority.
 - Public accepts only `!ping`; it follows `loon.ping.public`.
-- `#test` accepts `!ping`, `!help`, `!about`, and `!roll`; ping follows
+- `#test` accepts `!ping`, `!help`, `!about`, `!roll`, `!rps`, and `!rps3`; ping follows
   `loon.ping.test`.
 - `!roll` rolls one six-sided die on `#test`; Public ignores it.
+- `!rps` randomly chooses rock, paper, or scissors on `#test`; Public ignores it.
+- `!rps3` sends three random throws 10 seconds apart on `#test`; Public ignores it.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
 - Persistent Loon configuration survives reboot and firmware updates.
@@ -63,6 +65,8 @@ The current source supports these channel commands:
 ```text
 !ping
 !roll
+!rps
+!rps3
 !help
 !about
 ```
@@ -73,7 +77,7 @@ entire message. Loon ignores its own messages.
 On `#test`, `!help` returns:
 
 ```text
-Loon: Commands: ping, roll, about. Use the ! prefix.
+Loon: Commands: ping, roll, rps, rps3, about. Use the ! prefix.
 ```
 
 Public does not accept `!help`. The `#test` help response deliberately contains
@@ -84,6 +88,22 @@ exact-match bot.
 
 ```text
 Loon: 🎲 4
+```
+
+`!rps` randomly chooses rock, paper, or scissors. It is restricted to `#test`.
+
+```text
+Loon: 🪨
+```
+
+`!rps3` starts a non-blocking best-of-three game. Loon sends three independent
+random throws, 10 seconds apart, beginning 10 seconds after the command. Only
+one game can run at a time; additional starts are ignored until it finishes.
+
+```text
+Loon: 1/3 🪨
+Loon: 2/3 ✂️
+Loon: 3/3 📄
 ```
 
 `!about` returns the firmware version and the standard MeshCore owner message:
@@ -193,13 +213,19 @@ Management. Commands with no value display their current setting.
 | `loon.announce.test.message [TEXT\|clear]` | Read, set, or clear the `#test` custom text. |
 | `loon.daily.hour [0..23]` | Read or set the local hour for daily announcements. |
 | `loon.timezone [-720..840]` | Read or set the UTC offset in minutes. |
-| `loon.busy.threshold [0..100]` | Read or set the percentage where ping delay begins. |
+| `loon.busy.threshold [0..100]` | Read or set the percentage where Loon reply delays begin. |
 | `wifi.status` | Show Wi-Fi state, IP address, and webhook queue depth. |
 | `wifi.ssid [NAME]` | Read or set the Wi-Fi network name. |
 | `wifi.pwd [PASSWORD\|clear]` | Set or clear the Wi-Fi password; reading shows only whether it is set. |
 | `wifi.webhook.channel [Public\|#CHANNEL]` | Select exactly one standard MeshCore channel to forward. |
 | `wifi.webhook [URL\|test\|clear]` | Set, test, or clear the Discord webhook without printing its URL. |
 | `wifi.connect` | Request an immediate Wi-Fi connection. |
+
+Loon measures combined receive/transmit airtime over about one minute. Above
+`loon.busy.threshold`, it increasingly delays its own ping and command replies,
+up to the 120-second maximum at 100% Busy. Normal repeater forwarding is never
+delayed by this setting; set the threshold to `100` to disable busy-based reply
+delays. Scheduled announcements use the separate 80% Busy skip described above.
 
 Examples:
 
@@ -323,6 +349,8 @@ and boosted receive gain.
 - `!ping` on `#test` produces one reply.
 - `!help` lists the utility commands on `#test` and is ignored on Public.
 - `!roll` works on `#test` and is ignored on Public.
+- `!rps` works on `#test` and is ignored on Public.
+- `!rps3` sends exactly three throws on `#test` and ignores overlapping starts.
 - `!about` shows the firmware version and configured owner message.
 - A direct ping displays `Path direct`.
 - A routed ping displays the observed hop hashes.
@@ -335,7 +363,7 @@ and boosted receive gain.
 ## Project status
 
 Loon has booted successfully on a physical Heltec V3, and direct `#test` ping
-behaviour has been verified. Routed pings, dice rolling, long-duration
+behaviour has been verified. Routed pings, dice and RPS commands, long-duration
 stability, and scheduled announcements remain field-test items.
 
 MeshCore and Loon are MIT-licensed; see [license.txt](license.txt). This fork

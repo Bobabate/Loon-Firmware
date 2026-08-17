@@ -3,6 +3,12 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## Unreleased
+
+- Add `!rps` on `#test`, returning a random rock, paper, or scissors emoji.
+- Add non-blocking `!rps3` best-of-three games with three random throws at
+  10-second intervals, compact round labels, and one active game at a time.
+
 ## 1.17.1-L1 - 2026-08-17
 
 - Prevent duplicate Discord webhook posts when Discord accepts a complete request but its HTTP response is lost or malformed.

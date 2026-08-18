@@ -3,8 +3,9 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
-## Unreleased
+## 1.17.1-L2 - 2026-08-18
 
+- Replace `Pong` with the 🏓 emoji in `!ping` replies.
 - Add `!rps` on `#test`, returning a random rock, paper, or scissors emoji.
 - Add non-blocking `!rps3` best-of-three games with three random throws at
   10-second intervals, compact round labels, and one active game at a time.

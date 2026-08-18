@@ -45,13 +45,13 @@ The selected standard channel is derived from its name, such as `Public`,
 Routed:
 
 ```text
-Loon: Pong @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
+Loon: 🏓 @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
 ```
 
 Direct:
 
 ```text
-Loon: Pong @[your-name] | Path direct | RSSI -91 | SNR 10.2 | Busy 3%
+Loon: 🏓 @[your-name] | Path direct | RSSI -91 | SNR 10.2 | Busy 3%
 ```
 
 The path is the actual inbound hop-hash sequence. Incoming 1-, 2-, and 3-byte

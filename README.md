@@ -35,7 +35,7 @@ MeshCore RAK repeater configuration:
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L1.
+- Current build: v1.17.1-L2.
 
 ## Features
 
@@ -123,13 +123,13 @@ If `owner.info` is empty, `!about` returns only the firmware version.
 Direct response:
 
 ```text
-Loon: Pong @[your-name] | Path direct | RSSI -29 | SNR 11.8 | Busy 1%
+Loon: 🏓 @[your-name] | Path direct | RSSI -29 | SNR 11.8 | Busy 1%
 ```
 
 Routed response:
 
 ```text
-Loon: Pong @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
+Loon: 🏓 @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
 ```
 
 `Path` is the inbound route observed by Loon. A directly received request is

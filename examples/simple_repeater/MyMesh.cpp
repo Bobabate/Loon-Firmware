@@ -936,7 +936,7 @@ void MyMesh::sendLoonPing(const mesh::GroupChannel& channel, const char* sender,
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
   snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
-           "%s: Pong @[%s] | Path %s | RSSI %d | SNR %.1f | Busy %u%%",
+           "%s: 🏓 @[%s] | Path %s | RSSI %d | SNR %.1f | Busy %u%%",
            _prefs.node_name, sender, path, (int)_radio->getLastRSSI(), packet->getSNR(), busy);
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* reply = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);

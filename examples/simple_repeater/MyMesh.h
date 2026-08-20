@@ -120,6 +120,8 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
     int16_t timezone_minutes;
     uint8_t busy_threshold;
     uint16_t max_busy_delay_secs;
+    uint8_t roll_test;
+    uint8_t rps_test;
     char announcement_public_message[141];
     char announcement_test_message[141];
     uint32_t checksum;

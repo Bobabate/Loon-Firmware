@@ -1,20 +1,27 @@
 # Loon Firmware
 
 Loon Firmware is a standalone MeshCore repeater-bot for the original Heltec
-WiFi LoRa 32 V3 (8 MB flash, no PSRAM required) and RAK4631 repeaters,
-including the WisMesh Repeater Mini. It starts from current upstream MeshCore
-and keeps repeater operation as the highest priority.
+WiFi LoRa 32 V3 (8 MB flash, no PSRAM required), both Heltec T114 variants,
+the Seeed SenseCAP Solar Node P1/P1 Pro, and RAK4631 repeaters including the
+WisMesh Repeater Mini. It starts from current upstream MeshCore and keeps
+repeater operation as the highest priority.
 
 ## Version 0.1 scope
 
-- Heltec WiFi LoRa 32 V3 and RAK4631 repeater targets.
-- USA/Canada recommended preset: 910.525 MHz, SF7, BW62.5, CR5.
+- Heltec WiFi LoRa 32 V3, display-equipped and displayless Heltec T114, and
+  RAK4631 repeater targets, plus one shared target for the Seeed SenseCAP Solar
+  Node P1 and P1 Pro.
+- Clean/full installs use ordinary upstream MeshCore radio defaults and retain
+  MeshCore's standard public development administrator password. Provision the
+  radio for the intended network and change the password before deployment.
 - Release filenames identify only the firmware version, board, and image type;
   region/preset names are not included.
 - Normal MeshCore repeating and authenticated repeater administration.
 - `!ping` on Public and `#test` through the per-channel ping controls.
 - `!help` and `!about` on `#test` only.
 - `!roll` for one six-sided die on `#test` only.
+- Persistent authenticated `loon.roll on|off` and `loon.rps on|off` controls;
+  the RPS setting applies to both the single and three-round commands.
 - Scheduled announcements independently configurable for Public and `#test`.
 - Announcement cadence: off, hourly, or daily.
 - OLED repeater diagnostics.
@@ -138,8 +145,9 @@ wifi.connect
 time and `-240` during daylight time. The Heltec V3 has no battery-backed RTC,
 so announcements wait until MeshCore provides a valid clock.
 
-Administrator passwords compiled into source or firmware are public defaults.
-Change the password during device provisioning and never reuse it elsewhere.
+Like upstream MeshCore, Loon compiles a public development administrator
+password into clean-install firmware for initial provisioning. Change it
+during device provisioning and never reuse it elsewhere.
 Wi-Fi passwords and webhook URLs are stored in device preferences and are not
 printed by status commands. Treat a Discord webhook URL as a password and
 rotate it if it is exposed.

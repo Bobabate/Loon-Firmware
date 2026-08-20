@@ -62,7 +62,7 @@
 
 #ifdef LOON_FIRMWARE
 #define LOON_PREFS_MAGIC             0x4C4F4F4EUL
-#define LOON_PREFS_VERSION           3
+#define LOON_PREFS_VERSION           4
 #define LOON_PREFS_FILE              "/loon_prefs"
 #define LOON_ANNOUNCE_OFF            0
 #define LOON_ANNOUNCE_HOURLY         1
@@ -115,6 +115,22 @@ struct LoonPrefsV2 {
   uint8_t busy_threshold;
   uint16_t max_busy_delay_secs;
   char announcement_message[141];
+  uint32_t checksum;
+};
+
+struct LoonPrefsV3 {
+  uint32_t magic;
+  uint8_t version;
+  uint8_t ping_public;
+  uint8_t ping_test;
+  uint8_t announce_public;
+  uint8_t announce_test;
+  uint8_t daily_hour;
+  int16_t timezone_minutes;
+  uint8_t busy_threshold;
+  uint16_t max_busy_delay_secs;
+  char announcement_public_message[141];
+  char announcement_test_message[141];
   uint32_t checksum;
 };
 
@@ -580,6 +596,8 @@ void MyMesh::resetLoonPrefs() {
   loon_prefs.timezone_minutes = -300; // America/Toronto standard-time default; configurable for DST
   loon_prefs.busy_threshold = 20;
   loon_prefs.max_busy_delay_secs = 120;
+  loon_prefs.roll_test = 1;
+  loon_prefs.rps_test = 1;
   loon_prefs.checksum = calcLoonPrefsChecksum();
 }
 
@@ -645,6 +663,37 @@ void MyMesh::loadLoonPrefs() {
     }
     return;
   }
+  if (file.size() == sizeof(LoonPrefsV3)) {
+    LoonPrefsV3 old;
+    bool read_ok = file.read(reinterpret_cast<uint8_t*>(&old), sizeof(old)) == sizeof(old);
+    file.close();
+    bool valid = read_ok && old.magic == LOON_PREFS_MAGIC && old.version == 3 &&
+                 old.checksum == calcLoonChecksum(&old, offsetof(LoonPrefsV3, checksum)) &&
+                 old.ping_public <= 1 && old.ping_test <= 1 &&
+                 old.announce_public <= LOON_ANNOUNCE_DAILY && old.announce_test <= LOON_ANNOUNCE_DAILY &&
+                 old.daily_hour <= 23 && old.timezone_minutes >= -720 && old.timezone_minutes <= 840 &&
+                 old.busy_threshold <= 100 && old.max_busy_delay_secs <= 3600 &&
+                 old.announcement_public_message[sizeof(old.announcement_public_message) - 1] == 0 &&
+                 old.announcement_test_message[sizeof(old.announcement_test_message) - 1] == 0;
+    if (valid) {
+      loon_prefs.ping_public = old.ping_public;
+      loon_prefs.ping_test = old.ping_test;
+      loon_prefs.announce_public = old.announce_public;
+      loon_prefs.announce_test = old.announce_test;
+      loon_prefs.daily_hour = old.daily_hour;
+      loon_prefs.timezone_minutes = old.timezone_minutes;
+      loon_prefs.busy_threshold = old.busy_threshold;
+      loon_prefs.max_busy_delay_secs = old.max_busy_delay_secs;
+      if (loonAnnouncementIsSafe(old.announcement_public_message))
+        StrHelper::strncpy(loon_prefs.announcement_public_message, old.announcement_public_message,
+                           sizeof(loon_prefs.announcement_public_message));
+      if (loonAnnouncementIsSafe(old.announcement_test_message))
+        StrHelper::strncpy(loon_prefs.announcement_test_message, old.announcement_test_message,
+                           sizeof(loon_prefs.announcement_test_message));
+      saveLoonPrefs();
+    }
+    return;
+  }
   if (file.size() != sizeof(loon_prefs)) { file.close(); return; }
   LoonPrefs loaded;
   if (file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) != sizeof(loaded)) { file.close(); return; }
@@ -656,6 +705,7 @@ void MyMesh::loadLoonPrefs() {
                       loaded.announce_test <= LOON_ANNOUNCE_DAILY && loaded.daily_hour <= 23 &&
                       loaded.timezone_minutes >= -720 && loaded.timezone_minutes <= 840 &&
                       loaded.busy_threshold <= 100 && loaded.max_busy_delay_secs <= 3600 &&
+                      loaded.roll_test <= 1 && loaded.rps_test <= 1 &&
                       loaded.announcement_public_message[sizeof(loaded.announcement_public_message) - 1] == 0 &&
                       loaded.announcement_test_message[sizeof(loaded.announcement_test_message) - 1] == 0;
   LoonPrefs original = loon_prefs;
@@ -1007,6 +1057,8 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   bool is_rps3 = !is_public && loonCommandIs(body, "!rps3");
   if (!is_ping && !is_help && !is_about && !is_roll && !is_rps && !is_rps3) return;
   if (is_ping && !(is_public ? loon_prefs.ping_public : loon_prefs.ping_test)) return;
+  if (is_roll && !loon_prefs.roll_test) return;
+  if ((is_rps || is_rps3) && !loon_prefs.rps_test) return;
   unsigned long now = millis();
   uint32_t sender_hash = calcLoonChecksum(sender, strlen(sender));
   uint8_t sender_slot = 0;
@@ -1994,8 +2046,9 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
   }
 #ifdef LOON_FIRMWARE
   else if (strcmp(command, "loon") == 0) {
-    snprintf(reply, 160, "ping public=%s test=%s; announce public=%s test=%s; daily=%02u:00 UTC%+d:%02d",
+    snprintf(reply, 160, "ping public=%s test=%s; roll=%s rps=%s; announce public=%s test=%s; daily=%02u:00 UTC%+d:%02d",
              loon_prefs.ping_public ? "on" : "off", loon_prefs.ping_test ? "on" : "off",
+             loon_prefs.roll_test ? "on" : "off", loon_prefs.rps_test ? "on" : "off",
              loonModeName(loon_prefs.announce_public), loonModeName(loon_prefs.announce_test),
              loon_prefs.daily_hour, loon_prefs.timezone_minutes / 60, abs(loon_prefs.timezone_minutes % 60));
   } else if (strncmp(command, "loon.ping.", 10) == 0) {
@@ -2014,6 +2067,26 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       else if (!strcmp(value, "off") || !strcmp(value, "0")) { *setting = 0; saveLoonPrefs(); strcpy(reply, "OK"); }
       else strcpy(reply, "Err - use on|off");
     }
+  } else if (strncmp(command, "loon.roll", 9) == 0 && (command[9] == 0 || command[9] == ' ')) {
+    const char* value = command + 9; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_prefs.roll_test ? "on" : "off");
+    else if (!strcmp(value, "on") || !strcmp(value, "1")) {
+      loon_prefs.roll_test = 1; saveLoonPrefs(); strcpy(reply, "OK");
+    } else if (!strcmp(value, "off") || !strcmp(value, "0")) {
+      loon_prefs.roll_test = 0; saveLoonPrefs(); strcpy(reply, "OK");
+    } else strcpy(reply, "Err - use on|off");
+  } else if (strncmp(command, "loon.rps", 8) == 0 && (command[8] == 0 || command[8] == ' ')) {
+    const char* value = command + 8; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_prefs.rps_test ? "on" : "off");
+    else if (!strcmp(value, "on") || !strcmp(value, "1")) {
+      loon_prefs.rps_test = 1; saveLoonPrefs(); strcpy(reply, "OK");
+    } else if (!strcmp(value, "off") || !strcmp(value, "0")) {
+      loon_prefs.rps_test = 0;
+      loon_rps3_remaining = 0;
+      loon_next_rps3_throw = 0;
+      saveLoonPrefs();
+      strcpy(reply, "OK");
+    } else strcpy(reply, "Err - use on|off");
   } else if (strncmp(command, "loon.announce.public.message", 28) == 0 &&
              (command[28] == 0 || command[28] == ' ')) {
     const char* value = command + 28; while (*value == ' ') value++;

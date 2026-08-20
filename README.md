@@ -1,5 +1,30 @@
 # Loon Firmware
 
+## Start here
+
+**Looking for firmware to install?** Go to
+**[Loon Firmware Releases](https://github.com/dchant/Loon-Firmware/releases)**.
+Do not use GitHub's green **Code** download button; that downloads the source
+code, not an installable firmware image.
+
+What do you want to do?
+
+- **Download firmware:** [open Releases](https://github.com/dchant/Loon-Firmware/releases)
+- **Install or update Loon:** [jump to the installation instructions](#flashing-and-updating)
+- **Configure Loon:** [jump to the administration commands](#loon-administration-commands)
+- **See Loon's commands:** [jump to bot commands](#bot-commands)
+- **Understand this repository:** [read START-HERE.md](START-HERE.md)
+- **Review changes by version:** [read the changelog](CHANGELOG.md)
+
+### Code and Releases are different
+
+- The **Code** page contains the project files used to build Loon.
+- The **Releases** page contains finished firmware files ready to install.
+- Most Loon users never need to open the folders shown on the Code page.
+- The many folders and commits come from MeshCore, which Loon is built upon.
+
+---
+
 Loon Firmware is a standalone MeshCore repeater-bot designed to help people
 establish and test a mesh. It repeats normal MeshCore traffic and provides
 recognizable, airtime-conscious responses that operators can listen for, aim
@@ -25,16 +50,17 @@ Install firmware only from the current GitHub releases. Change the default
 administrator password before deployment.
 
 The current source targets the original Heltec V3 with 8 MB flash and no PSRAM,
-plus an additive RAK4631 repeater target that retains the complete official
-MeshCore RAK repeater configuration:
-
-- Radio settings: 910.525 MHz, SF7, BW 62.5 kHz, CR 5
-- Default node name: `Loon`
+both display-equipped and displayless Heltec T114 variants, and the RAK4631. A
+shared target also supports the Seeed SenseCAP Solar Node P1 and P1 Pro. A
+clean/full installation uses the ordinary upstream MeshCore radio defaults and
+retains MeshCore's public development administrator password for initial
+provisioning. Provision the radio for the intended network and set a unique
+password before deployment. The default node name is `Loon`.
 
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L2.
+- Current release: v1.17.1-L3.
 
 ## Features
 
@@ -45,6 +71,8 @@ include a region or preset name.
 - `!roll` rolls one six-sided die on `#test`; Public ignores it.
 - `!rps` randomly chooses rock, paper, or scissors on `#test`; Public ignores it.
 - `!rps3` sends three random throws 10 seconds apart on `#test`; Public ignores it.
+- Authenticated administration can persistently enable or disable dice with
+  `loon.roll on|off`, and both RPS modes with `loon.rps on|off`.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
 - Persistent Loon configuration survives reboot and firmware updates.
@@ -103,6 +131,17 @@ one game can run at a time; additional starts are ignored until it finishes.
 Loon: 1/3 🪨
 Loon: 2/3 ✂️
 Loon: 3/3 📄
+```
+
+Authenticated administrators can disable or re-enable the game commands. The
+RPS setting controls both `!rps` and `!rps3`; switching it off also cancels a
+three-round game already in progress. Settings persist across reboot:
+
+```text
+loon.roll off
+loon.roll on
+loon.rps off
+loon.rps on
 ```
 
 `!about` returns the firmware version and the standard MeshCore owner message:
@@ -308,11 +347,14 @@ known-working non-merged application image over it without erasing.
 
 ## Initial configuration and security
 
-The source uses MeshCore's public development default administrator password
-for first provisioning. Change it immediately using the standard MeshCore
-administration tools. Never publish deployed administrator passwords, private
-channel keys, private keys, or device configuration dumps. A password embedded
-in source or a release must be treated as public.
+A clean/full Loon installation uses ordinary upstream MeshCore radio defaults
+and the same public development administrator password as upstream MeshCore:
+`password`. Provision the correct regional and network radio settings, then
+replace that password with a unique administrator password using the standard
+MeshCore tools before deployment. A normal application-image update does not
+replace an existing device's stored radio settings or password. Never publish
+deployed administrator passwords, private channel keys, private keys, or device
+configuration dumps.
 
 Public and `#test` are the only channels recognized by the Loon bot in v0.1.3.
 Their standard channel secrets are embedded so Loon can decrypt commands and

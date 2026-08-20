@@ -3,6 +3,23 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L3 - 2026-08-20
+
+- Add a shared Loon firmware target and GitHub Actions selections for the Seeed
+  SenseCAP Solar Node P1 and P1 Pro, preserving the upstream SenseCAP Solar
+  board, radio, GPS, sensor, and power configuration.
+- Add Loon firmware targets and GitHub Actions selections for both the
+  display-equipped and displayless Heltec T114, preserving each variant's
+  upstream MeshCore board, radio, display, and power configuration.
+- Make clean/full Loon installations use the ordinary upstream MeshCore radio
+  defaults instead of a preloaded USA/Canada preset. Retain MeshCore's standard
+  public development administrator password for initial provisioning.
+  Application-image updates continue to preserve the device's existing radio
+  settings and password.
+- Add persistent authenticated `loon.roll on|off` and `loon.rps on|off`
+  controls. Disabling RPS covers both RPS commands and cancels an active
+  three-round game.
+
 ## 1.17.1-L2 - 2026-08-18
 
 - Replace `Pong` with the 🏓 emoji in `!ping` replies.

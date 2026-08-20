@@ -65,7 +65,6 @@ jobs:
 
       - name: Build ${{ matrix.board.name }}
         env:
-          DISABLE_DEBUG: "1"
           FIRMWARE_VERSION: workflow-${{ github.run_number }}
         run: ./build.sh build-firmware "${{ matrix.board.target }}"
 

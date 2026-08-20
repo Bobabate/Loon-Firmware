@@ -12,6 +12,9 @@ on:
           - all
           - heltec-v3
           - rak4631
+          - t114
+          - t114-display
+          - t114-no-display
 
 permissions:
   contents: read
@@ -30,13 +33,22 @@ jobs:
         run: |
           case "$BOARD_CHOICE" in
             all)
-              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"}]'
+              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"},{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"}]'
               ;;
             heltec-v3)
               value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"}]'
               ;;
             rak4631)
               value='[{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"}]'
+              ;;
+            t114)
+              value='[{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"}]'
+              ;;
+            t114-display)
+              value='[{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"}]'
+              ;;
+            t114-no-display)
+              value='[{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"}]'
               ;;
             *)
               echo "Unknown board choice: $BOARD_CHOICE" >&2

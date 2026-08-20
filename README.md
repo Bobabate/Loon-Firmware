@@ -1,18 +1,17 @@
 # Loon Firmware
 
-Loon Firmware is a standalone MeshCore repeater-bot for the Heltec WiFi LoRa
-32 V3 and RAK4631 repeaters, including the WisMesh Repeater Mini. It repeats
-normal MeshCore traffic and adds a small, airtime-conscious bot for Public and
-`#test`. It needs no phone, computer, Wi-Fi, or Internet connection during
-normal operation.
+Loon Firmware is a standalone MeshCore repeater-bot designed to help people
+establish and test a mesh. It repeats normal MeshCore traffic and provides
+recognizable, airtime-conscious responses that operators can listen for, aim
+toward, and use to confirm coverage. Its optional webhook can also feed mesh
+activity into Discord, helping communities observe and grow their network.
 
-Loon is based on current upstream
-[MeshCore](https://github.com/meshcore-dev/MeshCore). Its bot behaviour was
-developed independently and is maintained in this repository.
+Loon is based on upstream [MeshCore](https://github.com/meshcore-dev/MeshCore).
+Its bot behaviour was developed independently and is maintained in this
+repository.
 
-The name comes from a **loon call**: a compact signal sent across distance and
-answered elsewhere. That is the design goal for Loon on the mesh—useful,
-recognizable responses without unnecessary chatter.
+The name comes from a **loon call**—a distinct signal sent across the distance
+to find and connect with others.
 
 > [!WARNING]
 > Loon is experimental community firmware. Keep a known-working recovery image,

@@ -1,0 +1,105 @@
+name: Build Loon Firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      boards:
+        description: Boards to build
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - heltec-v3
+          - rak4631
+
+permissions:
+  contents: read
+
+jobs:
+  choose-boards:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - name: Select build matrix
+        id: matrix
+        shell: bash
+        env:
+          BOARD_CHOICE: ${{ inputs.boards }}
+        run: |
+          case "$BOARD_CHOICE" in
+            all)
+              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"}]'
+              ;;
+            heltec-v3)
+              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"}]'
+              ;;
+            rak4631)
+              value='[{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"}]'
+              ;;
+            *)
+              echo "Unknown board choice: $BOARD_CHOICE" >&2
+              exit 1
+              ;;
+          esac
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: choose-boards
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJSON(needs.choose-boards.outputs.matrix) }}
+
+    steps:
+      - name: Check out Loon
+        uses: actions/checkout@v6
+
+      - name: Set up build environment
+        uses: ./.github/actions/setup-build-environment
+
+      - name: Report PlatformIO version
+        run: pio --version
+
+      - name: Build ${{ matrix.board.name }}
+        env:
+          DISABLE_DEBUG: "1"
+          FIRMWARE_VERSION: workflow-${{ github.run_number }}
+        run: ./build.sh build-firmware "${{ matrix.board.target }}"
+
+      - name: Verify build output
+        shell: bash
+        env:
+          TARGET: ${{ matrix.board.target }}
+        run: |
+          shopt -s nullglob
+          files=(out/"$TARGET"-*)
+          if (( ${#files[@]} == 0 )); then
+            echo "No packaged firmware files were produced for $TARGET" >&2
+            exit 1
+          fi
+          if [[ "$TARGET" == "Loon_heltec_v3_repeater" ]]; then
+            app=(out/"$TARGET"-*.bin)
+            merged=(out/"$TARGET"-*-merged.bin)
+            if (( ${#app[@]} < 2 || ${#merged[@]} != 1 )); then
+              echo "Heltec build must contain application and merged images" >&2
+              exit 1
+            fi
+          else
+            uf2=(out/"$TARGET"-*.uf2)
+            if (( ${#uf2[@]} != 1 )); then
+              echo "RAK4631 build must contain one UF2 image" >&2
+              exit 1
+            fi
+          fi
+          sha256sum "${files[@]}" | tee out/SHA256SUMS.txt
+
+      - name: Upload ${{ matrix.board.name }} firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: Loon-${{ matrix.board.name }}-workflow-${{ github.run_number }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 14

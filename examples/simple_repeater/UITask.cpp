@@ -94,12 +94,16 @@ void UITask::renderCurrScreen() {
 #ifdef LOON_FIRMWARE
     // Wi-Fi address
     _display->setCursor(0, 15);
+#if defined(ESP32)
     if (WiFi.status() == WL_CONNECTED) {
       String ip = WiFi.localIP().toString();
       snprintf(tmp, sizeof(tmp), "IP: %s", ip.c_str());
     } else {
       StrHelper::strncpy(tmp, "IP: offline", sizeof(tmp));
     }
+#else
+    StrHelper::strncpy(tmp, "IP: unavailable", sizeof(tmp));
+#endif
     _display->print(tmp);
 
     // Uptime

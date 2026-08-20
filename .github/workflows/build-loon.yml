@@ -15,6 +15,8 @@ on:
           - t114
           - t114-display
           - t114-no-display
+          - sensecap-p1
+          - sensecap-p1-pro
 
 permissions:
   contents: read
@@ -33,7 +35,7 @@ jobs:
         run: |
           case "$BOARD_CHOICE" in
             all)
-              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"},{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"}]'
+              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"},{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"},{"name":"SenseCAP-Solar-P1-P1-Pro","target":"Loon_SenseCap_Solar_repeater"}]'
               ;;
             heltec-v3)
               value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"}]'
@@ -49,6 +51,9 @@ jobs:
               ;;
             t114-no-display)
               value='[{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"}]'
+              ;;
+            sensecap-p1|sensecap-p1-pro)
+              value='[{"name":"SenseCAP-Solar-P1-P1-Pro","target":"Loon_SenseCap_Solar_repeater"}]'
               ;;
             *)
               echo "Unknown board choice: $BOARD_CHOICE" >&2

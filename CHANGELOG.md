@@ -3,6 +3,12 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L5 - 2026-08-21
+
+- Restore authenticated Wi-Fi OTA mode in the Heltec V3 Loon target.
+- Remove `meshcore.io` from the Loon boot screen and show the complete Loon
+  version and build date on separate readable lines.
+
 ## 1.17.1-L4 - 2026-08-21
 
 - Default `!roll`, `!rps`, and `!rps3` to off on clean/full installations.

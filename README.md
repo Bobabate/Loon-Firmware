@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L4.
+- Current release: v1.17.1-L5.
 
 ## Features
 

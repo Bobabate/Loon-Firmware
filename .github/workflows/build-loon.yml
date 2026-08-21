@@ -103,6 +103,10 @@ jobs:
               echo "Heltec build must contain application and merged images" >&2
               exit 1
             fi
+            if ! strings ".pio/build/$TARGET/firmware.elf" | grep -Fq "MeshCore-OTA"; then
+              echo "Heltec V3 firmware is missing Wi-Fi OTA support" >&2
+              exit 1
+            fi
           else
             uf2=(out/"$TARGET"-*.uf2)
             if (( ${#uf2[@]} != 1 )); then

@@ -13,6 +13,10 @@ class UITask {
   NodePrefs* _node_prefs;
   MyMesh* _mesh;
   char _version_info[32];
+#ifdef LOON_FIRMWARE
+  const char* _firmware_version;
+  const char* _build_date;
+#endif
   unsigned long _powering_off_at = 0;
   unsigned long _started_at = 0;
 

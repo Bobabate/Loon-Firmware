@@ -38,6 +38,11 @@ void UITask::begin(MyMesh* mesh, const char* build_date, const char* firmware_ve
   _node_prefs = mesh->getNodePrefs();
   _display->turnOn();
 
+#ifdef LOON_FIRMWARE
+  _firmware_version = firmware_version;
+  _build_date = build_date;
+#endif
+
 #if defined(PIN_USER_BTN) && defined(DISPLAY_CLASS)
   user_btn.begin();
 #endif
@@ -55,6 +60,13 @@ void UITask::renderCurrScreen() {
     int logoWidth = 128;
     _display->drawXbm((_display->width() - logoWidth) / 2, 3, meshcore_logo, logoWidth, 13);
 
+#ifdef LOON_FIRMWARE
+    // Keep each line within the 128-pixel display width.
+    _display->setColor(UIColor::primary_txt);
+    _display->setTextSize(1);
+    _display->drawTextCentered(_display->width() / 2, 22, _firmware_version);
+    _display->drawTextCentered(_display->width() / 2, 35, _build_date);
+#else
     // meshcore website
     const char* website = "https://meshcore.io";
     _display->setColor(UIColor::primary_txt);
@@ -64,6 +76,7 @@ void UITask::renderCurrScreen() {
     // version info
     _display->setTextSize(1);
     _display->drawTextCentered(_display->width() / 2, 35, _version_info);
+#endif
 
     // node type
     const char* node_type = "< Repeater >";

@@ -3,13 +3,13 @@
 ## Start here
 
 **Looking for firmware to install?** Go to
-**[Loon Firmware Releases](https://github.com/dchant/Loon-Firmware/releases)**.
+**[Loon Firmware Releases](https://github.com/Bobabate/Loon-Firmware/releases)**.
 Do not use GitHub's green **Code** download button; that downloads the source
 code, not an installable firmware image.
 
 What do you want to do?
 
-- **Download firmware:** [open Releases](https://github.com/dchant/Loon-Firmware/releases)
+- **Download firmware:** [open Releases](https://github.com/Bobabate/Loon-Firmware/releases)
 - **Install or update Loon:** [jump to the installation instructions](#flashing-and-updating)
 - **Configure Loon:** [jump to the administration commands](#loon-administration-commands)
 - **See Loon's commands:** [jump to bot commands](#bot-commands)

@@ -5,7 +5,7 @@ understand GitHub's folder structure to download or operate Loon.
 
 ## I want to install or update Loon
 
-Open the **[Releases page](https://github.com/dchant/Loon-Firmware/releases)**.
+Open the **[Releases page](https://github.com/Bobabate/Loon-Firmware/releases)**.
 That is where finished, installable firmware files live.
 
 Do not use the green **Code** button. It downloads source code for developers,
@@ -52,5 +52,5 @@ The files most relevant to Loon are:
 - **Source code:** the editable project files, not the firmware you install
 
 When in doubt, return to the
-**[Releases page](https://github.com/dchant/Loon-Firmware/releases)** to find
+**[Releases page](https://github.com/Bobabate/Loon-Firmware/releases)** to find
 installable firmware.

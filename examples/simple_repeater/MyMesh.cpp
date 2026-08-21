@@ -596,8 +596,8 @@ void MyMesh::resetLoonPrefs() {
   loon_prefs.timezone_minutes = -300; // America/Toronto standard-time default; configurable for DST
   loon_prefs.busy_threshold = 20;
   loon_prefs.max_busy_delay_secs = 120;
-  loon_prefs.roll_test = 1;
-  loon_prefs.rps_test = 1;
+  loon_prefs.roll_test = 0;
+  loon_prefs.rps_test = 0;
   loon_prefs.checksum = calcLoonPrefsChecksum();
 }
 

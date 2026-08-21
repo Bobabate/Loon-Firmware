@@ -21,7 +21,8 @@ repeater operation as the highest priority.
 - `!help` and `!about` on `#test` only.
 - `!roll` for one six-sided die on `#test` only.
 - Persistent authenticated `loon.roll on|off` and `loon.rps on|off` controls;
-  the RPS setting applies to both the single and three-round commands.
+  the RPS setting applies to both the single and three-round commands. Both
+  settings default to off on a clean installation.
 - Scheduled announcements independently configurable for Public and `#test`.
 - Announcement cadence: off, hourly, or daily.
 - OLED repeater diagnostics.

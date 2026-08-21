@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L3.
+- Current release: v1.17.1-L4.
 
 ## Features
 
@@ -72,7 +72,8 @@ include a region or preset name.
 - `!rps` randomly chooses rock, paper, or scissors on `#test`; Public ignores it.
 - `!rps3` sends three random throws 10 seconds apart on `#test`; Public ignores it.
 - Authenticated administration can persistently enable or disable dice with
-  `loon.roll on|off`, and both RPS modes with `loon.rps on|off`.
+  `loon.roll on|off`, and both RPS modes with `loon.rps on|off`. Both game
+  settings default to off on a clean installation.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
 - Persistent Loon configuration survives reboot and firmware updates.

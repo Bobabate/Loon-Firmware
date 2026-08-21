@@ -138,16 +138,22 @@ build_firmware() {
     exit 1
   fi
 
-  # set firmware version string
-  # e.g: v1.0.0-abcdef
-  FIRMWARE_VERSION_STRING="${FIRMWARE_VERSION}-${COMMIT_HASH}"
+  # Loon releases use a clean user-facing version. Other upstream targets keep
+  # the commit suffix that MeshCore traditionally adds for traceability.
+  if [[ "$1" == Loon_* ]]; then
+    FIRMWARE_VERSION_STRING="${FIRMWARE_VERSION}"
+    FIRMWARE_DISPLAY_VERSION="Loon ${FIRMWARE_VERSION}"
+  else
+    FIRMWARE_VERSION_STRING="${FIRMWARE_VERSION}-${COMMIT_HASH}"
+    FIRMWARE_DISPLAY_VERSION="${FIRMWARE_VERSION_STRING}"
+  fi
 
   # craft filename
   # e.g: RAK_4631_Repeater-v1.0.0-SHA
   FIRMWARE_FILENAME="$1-${FIRMWARE_VERSION_STRING}"
 
   # add firmware version info to end of existing platformio build flags in environment vars
-  export PLATFORMIO_BUILD_FLAGS="${PLATFORMIO_BUILD_FLAGS} -DFIRMWARE_BUILD_DATE='\"${FIRMWARE_BUILD_DATE}\"' -DFIRMWARE_VERSION='\"${FIRMWARE_VERSION_STRING}\"'"
+  export PLATFORMIO_BUILD_FLAGS="${PLATFORMIO_BUILD_FLAGS} -DFIRMWARE_BUILD_DATE='\"${FIRMWARE_BUILD_DATE}\"' -DFIRMWARE_VERSION='\"${FIRMWARE_DISPLAY_VERSION}\"'"
 
   # disable debug flags if requested
   disable_debug_flags

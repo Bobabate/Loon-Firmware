@@ -3,6 +3,16 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L4 - 2026-08-21
+
+- Default `!roll`, `!rps`, and `!rps3` to off on clean/full installations.
+  Existing saved Loon preferences remain unchanged during application-image
+  updates.
+- Display clean Loon version names such as `Loon v1.17.1-L4` without a Git
+  commit suffix. Manual workflow builds retain their workflow identifier but
+  are also clearly identified as Loon firmware.
+- Update public project links for the GitHub username `Bobabate`.
+
 ## 1.17.1-L3 - 2026-08-20
 
 - Add a shared Loon firmware target and GitHub Actions selections for the Seeed

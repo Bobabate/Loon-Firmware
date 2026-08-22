@@ -3,6 +3,14 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L6 - 2026-08-22
+
+- Add an authenticated `wifi.webhook.path on|off` setting for exact inbound
+  MeshCore path IDs on Heltec V3 Discord webhook posts. It defaults to off and
+  preserves existing webhook configuration during application-image updates.
+  Loon ping replies identify enabled path details as the request path, and
+  direct receptions are labelled `direct`.
+
 ## 1.17.1-L5 - 2026-08-21
 
 - Restore authenticated Wi-Fi OTA mode in the Heltec V3 Loon target.

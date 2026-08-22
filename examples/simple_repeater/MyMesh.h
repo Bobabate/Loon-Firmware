@@ -144,8 +144,15 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
     char wifi_password[64];
     char discord_webhook_url[192];
     char channel_name[40];
+    // Uses bytes that were padding in v1, preserving existing stored webhook
+    // configuration while making the new feature default to off.
+    uint8_t path_enabled;
+    uint8_t reserved[2];
     uint32_t checksum;
   } loon_webhook_prefs;
+  static_assert(sizeof(LoonWebhookPrefs) == 340, "Webhook preferences must remain update-compatible");
+  static_assert(offsetof(LoonWebhookPrefs, checksum) == 336,
+                "Webhook preference checksum offset must remain stable");
   static const uint8_t LOON_WEBHOOK_QUEUE_SIZE = 32;
   struct LoonWebhookItem {
     char sender[40];
@@ -164,7 +171,8 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   void initLoonWifi();
   bool isLoonWebhookChannel(const mesh::GroupChannel& channel) const;
   void queueLoonWebhook(const char* sender, const char* body);
-  void queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body);
+  void queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body,
+                               const mesh::Packet* packet = NULL, const char* path_label = NULL);
   void pumpLoonWebhook();
 #endif
 

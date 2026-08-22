@@ -766,7 +766,8 @@ void MyMesh::loadLoonWebhookPrefs() {
                loaded.wifi_ssid[sizeof(loaded.wifi_ssid) - 1] == 0 &&
                loaded.wifi_password[sizeof(loaded.wifi_password) - 1] == 0 &&
                loaded.discord_webhook_url[sizeof(loaded.discord_webhook_url) - 1] == 0 &&
-               loaded.channel_name[sizeof(loaded.channel_name) - 1] == 0;
+               loaded.channel_name[sizeof(loaded.channel_name) - 1] == 0 &&
+               loaded.path_enabled <= 1;
   if (valid) loon_webhook_prefs = loaded;
 }
 
@@ -824,8 +825,20 @@ void MyMesh::queueLoonWebhook(const char* sender, const char* body) {
   loon_next_webhook_attempt_at = 0;
 }
 
-void MyMesh::queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body) {
+void MyMesh::queueLoonWebhookMessage(const mesh::GroupChannel& channel, const char* sender, const char* body,
+                                     const mesh::Packet* packet, const char* path_label) {
   if (!isLoonWebhookChannel(channel)) return;
+  if (loon_webhook_prefs.path_enabled && packet && path_label &&
+      mesh::Packet::isValidPathLen(packet->path_len)) {
+    char path[196];
+    char combined[sizeof(loon_webhook_queue[0].body)];
+    formatLoonPath(packet, path, sizeof(path));
+    int n = snprintf(combined, sizeof(combined), "%s\n`%s: %s`", body ? body : "", path_label, path);
+    if (n >= 0 && (size_t)n < sizeof(combined)) {
+      queueLoonWebhook(sender, combined);
+      return;
+    }
+  }
   queueLoonWebhook(sender, body);
 }
 
@@ -995,7 +1008,7 @@ void MyMesh::sendLoonPing(const mesh::GroupChannel& channel, const char* sender,
 #if defined(ESP32)
     const char* full = reinterpret_cast<char*>(&temp[5]);
     const char* sep = strstr(full, ": ");
-    queueLoonWebhookMessage(channel, _prefs.node_name, sep ? sep + 2 : full);
+    queueLoonWebhookMessage(channel, _prefs.node_name, sep ? sep + 2 : full, packet, "Request path");
 #endif
   }
 }
@@ -1045,7 +1058,7 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   }
   if (!sender[0]) StrHelper::strncpy(sender, "Unknown", sizeof(sender));
 #if defined(ESP32)
-  if (is_webhook_channel) queueLoonWebhookMessage(channel, sender, body);
+  if (is_webhook_channel) queueLoonWebhookMessage(channel, sender, body, packet, "Path");
 #endif
   if (!is_loon_channel) return;
   if (strcmp(sender, _prefs.node_name) == 0) return;
@@ -2177,6 +2190,14 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       StrHelper::strncpy(loon_webhook_prefs.wifi_password, value, sizeof(loon_webhook_prefs.wifi_password));
       saveLoonWebhookPrefs(); initLoonWifi(); strcpy(reply, "OK");
     }
+  } else if (strncmp(command, "wifi.webhook.path", 17) == 0 &&
+             (command[17] == 0 || command[17] == ' ')) {
+    const char* value = command + 17; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_webhook_prefs.path_enabled ? "on" : "off");
+    else if (!strcmp(value, "on") || !strcmp(value, "off")) {
+      loon_webhook_prefs.path_enabled = !strcmp(value, "on");
+      saveLoonWebhookPrefs(); strcpy(reply, "OK");
+    } else strcpy(reply, "Err - use on|off");
   } else if (strncmp(command, "wifi.webhook.channel", 20) == 0 &&
              (command[20] == 0 || command[20] == ' ')) {
     const char* value = command + 20; while (*value == ' ') value++;

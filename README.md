@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L5.
+- Current release: v1.17.1-L6.
 
 ## Features
 
@@ -82,6 +82,9 @@ include a region or preset name.
 - Existing authenticated MeshCore remote administration remains available.
 - Heltec V3 can forward one selected MeshCore channel to Discord, one message
   per post, using the MeshCore sender as the webhook username.
+- Heltec V3 webhook posts can optionally include the exact inbound path IDs on
+  a formatted second line. Loon ping replies label the same information as the
+  request path. This display option defaults to off.
 - Wi-Fi is off during normal operation; the existing authenticated OTA mode is
   available when deliberately started by an administrator. Configuring the
   webhook bridge also enables Wi-Fi station mode.
@@ -256,6 +259,7 @@ Management. Commands with no value display their current setting.
 | `wifi.status` | Show Wi-Fi state, IP address, and webhook queue depth. |
 | `wifi.ssid [NAME]` | Read or set the Wi-Fi network name. |
 | `wifi.pwd [PASSWORD\|clear]` | Set or clear the Wi-Fi password; reading shows only whether it is set. |
+| `wifi.webhook.path [on\|off]` | Show or hide exact received path IDs in Discord posts; defaults to off. |
 | `wifi.webhook.channel [Public\|#CHANNEL]` | Select exactly one standard MeshCore channel to forward. |
 | `wifi.webhook [URL\|test\|clear]` | Set, test, or clear the Discord webhook without printing its URL. |
 | `wifi.connect` | Request an immediate Wi-Fi connection. |

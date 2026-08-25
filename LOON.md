@@ -38,9 +38,10 @@ On ESP32 targets such as the Heltec V3, Loon can forward one explicitly
 selected MeshCore channel to one Discord webhook. Each MeshCore message becomes
 one Discord message, with the MeshCore sender as the webhook username and the
 original message text. The optional path display adds a formatted line containing
-the exact inbound path IDs. Loon ping replies label this as the request path, and
-direct receptions are shown as `direct`. It defaults to off. Discord mentions
-are disabled.
+the inbound repeater-hop count and exact path IDs (`Hops: N | Path: ...`). Loon
+ping replies label the path as the request path, and direct receptions are shown
+as `Hops: 0 | Path: direct`. The setting controls the complete hops-and-path line
+and defaults to off. Discord mentions are disabled.
 
 The bridge is disabled until Wi-Fi and a webhook URL are configured. It uses a
 bounded 32-message RAM queue, retries failed deliveries, and drops the oldest

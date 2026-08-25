@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L8.
+- Current release: v1.17.1-L9.
 
 ## Features
 
@@ -83,9 +83,10 @@ include a region or preset name.
 - Existing authenticated MeshCore remote administration remains available.
 - Heltec V3 can forward one selected MeshCore channel to Discord, one message
   per post, using the MeshCore sender as the webhook username.
-- Heltec V3 webhook posts can optionally include the exact inbound path IDs on
-  a formatted second line. Loon ping replies label the same information as the
-  request path. This display option defaults to off.
+- Heltec V3 webhook posts can optionally include the inbound repeater-hop count
+  and exact path IDs on a formatted second line (`Hops: N | Path: ...`). Loon
+  ping replies label the same information as the request path. This display
+  option defaults to off and controls the complete hops-and-path line.
 - Wi-Fi is off during normal operation; the existing authenticated OTA mode is
   available when deliberately started by an administrator. Configuring the
   webhook bridge also enables Wi-Fi station mode.

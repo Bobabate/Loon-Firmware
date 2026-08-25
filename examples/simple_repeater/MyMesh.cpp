@@ -886,7 +886,9 @@ void MyMesh::queueLoonWebhookMessage(const mesh::GroupChannel& channel, const ch
     char path[196];
     char combined[sizeof(loon_webhook_queue[0].body)];
     formatLoonPath(packet, path, sizeof(path));
-    int n = snprintf(combined, sizeof(combined), "%s\n`%s: %s`", body ? body : "", path_label, path);
+    uint8_t hops = packet->getPathHashCount();
+    int n = snprintf(combined, sizeof(combined), "%s\n`Hops: %u | %s: %s`",
+                     body ? body : "", hops, path_label, path);
     if (n >= 0 && (size_t)n < sizeof(combined)) {
       queueLoonWebhook(sender, combined);
       return;

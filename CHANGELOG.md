@@ -3,6 +3,12 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L9 - 2026-08-25
+
+- Add the inbound repeater-hop count to the optional Discord webhook path line,
+  using `Hops: N | Path: ...`. `wifi.webhook.path on|off` controls the complete
+  hops-and-path line; direct receptions display `Hops: 0 | Path: direct`.
+
 ## 1.17.1-L8 - 2026-08-25
 
 - Remove the `!about` command entirely.

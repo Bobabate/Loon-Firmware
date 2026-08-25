@@ -3,6 +3,10 @@ name: Build Loon Firmware
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: Firmware version (for example v1.17.1-L7)
+        required: true
+        type: string
       boards:
         description: Boards to build
         required: true
@@ -82,14 +86,19 @@ jobs:
 
       - name: Build ${{ matrix.board.name }}
         env:
-          FIRMWARE_VERSION: workflow-${{ github.run_number }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: ./build.sh build-firmware "${{ matrix.board.target }}"
 
       - name: Verify build output
         shell: bash
         env:
           TARGET: ${{ matrix.board.target }}
+          VERSION: ${{ inputs.version }}
         run: |
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-L[0-9]+$ ]]; then
+            echo "Invalid Loon firmware version: $VERSION" >&2
+            exit 1
+          fi
           shopt -s nullglob
           files=(out/"$TARGET"-*)
           if (( ${#files[@]} == 0 )); then
@@ -119,7 +128,7 @@ jobs:
       - name: Upload ${{ matrix.board.name }} firmware
         uses: actions/upload-artifact@v7
         with:
-          name: Loon-${{ matrix.board.name }}-workflow-${{ github.run_number }}
+          name: Loon-${{ matrix.board.name }}-${{ inputs.version }}
           path: out/
           if-no-files-found: error
           retention-days: 14

@@ -3,6 +3,14 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L7 - 2026-08-25
+
+- Add an authenticated persistent `loon.help.test on|off` setting that controls
+  only `!help` on `#test`. It defaults to off on clean installations and does
+  not affect any other command or Public-channel behavior. Application-image
+  updates preserve all existing Loon preferences and initialize the new help
+  control to off.
+
 ## 1.17.1-L6 - 2026-08-22
 
 - Add an authenticated `wifi.webhook.path on|off` setting for exact inbound

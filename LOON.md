@@ -18,7 +18,9 @@ repeater operation as the highest priority.
   region/preset names are not included.
 - Normal MeshCore repeating and authenticated repeater administration.
 - `!ping` on Public and `#test` through the per-channel ping controls.
-- `!help` and `!about` on `#test` only.
+- `!help` and `!about` on `#test` only. `!help` is independently controlled by
+  persistent authenticated `loon.help.test on|off` and defaults to off on a
+  clean installation.
 - `!roll` for one six-sided die on `#test` only.
 - Persistent authenticated `loon.roll on|off` and `loon.rps on|off` controls;
   the RPS setting applies to both the single and three-round commands. Both

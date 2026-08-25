@@ -60,20 +60,21 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L6.
+- Current release: v1.17.1-L7.
 
 ## Features
 
 - Normal MeshCore repeater operation remains the priority.
 - Public accepts only `!ping`; it follows `loon.ping.public`.
-- `#test` accepts `!ping`, `!help`, `!about`, `!roll`, `!rps`, and `!rps3`; ping follows
-  `loon.ping.test`.
+- `#test` recognizes `!ping`, `!help`, `!about`, `!roll`, `!rps`, and `!rps3`;
+  ping follows `loon.ping.test`, and help follows `loon.help.test`.
 - `!roll` rolls one six-sided die on `#test`; Public ignores it.
 - `!rps` randomly chooses rock, paper, or scissors on `#test`; Public ignores it.
 - `!rps3` sends three random throws 10 seconds apart on `#test`; Public ignores it.
 - Authenticated administration can persistently enable or disable dice with
-  `loon.roll on|off`, and both RPS modes with `loon.rps on|off`. Both game
-  settings default to off on a clean installation.
+  `loon.help.test on|off`, `loon.roll on|off`, and both RPS modes with
+  `loon.rps on|off`. Help and both game controls default to off on a clean
+  installation.
 - Ping replies show the actual inbound path, RSSI, SNR, and recent channel use.
 - Scheduled announcements can be off, hourly, or daily per channel.
 - Persistent Loon configuration survives reboot and firmware updates.
@@ -113,7 +114,13 @@ Loon: Commands: ping, roll, rps, rps3, about. Use the ! prefix.
 
 Public does not accept `!help`. The `#test` help response deliberately contains
 no complete command tokens, preventing it from triggering Loon or another
-exact-match bot.
+exact-match bot. Help defaults to off on a clean installation and can be
+enabled persistently through authenticated administration:
+
+```text
+loon.help.test on
+loon.help.test off
+```
 
 `!roll` rolls one six-sided die. It is restricted to `#test`.
 
@@ -249,6 +256,7 @@ Management. Commands with no value display their current setting.
 | `loon` | Show all main Loon settings. |
 | `loon.ping.public [on\|off]` | Read or change Public ping responses. |
 | `loon.ping.test [on\|off]` | Read or change `#test` ping responses. |
+| `loon.help.test [on\|off]` | Read or change `#test` help responses; defaults to off. |
 | `loon.announce.public [off\|hourly\|daily]` | Read or change Public announcements. |
 | `loon.announce.test [off\|hourly\|daily]` | Read or change `#test` announcements. |
 | `loon.announce.public.message [TEXT\|clear]` | Read, set, or clear the Public custom text. |

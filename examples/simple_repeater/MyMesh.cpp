@@ -1045,6 +1045,8 @@ int MyMesh::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channel
 void MyMesh::sendLoonPing(const mesh::GroupChannel& channel, const char* sender, const mesh::Packet* packet) {
   char path[196];
   formatLoonPath(packet, path, sizeof(path));
+  uint8_t hops = packet && mesh::Packet::isValidPathLen(packet->path_len)
+                   ? packet->getPathHashCount() : 0;
   uint8_t busy = calcLoonBusyPercent();
   uint32_t delay_ms = calcLoonBusyDelay(busy);
   uint8_t temp[MAX_PACKET_PAYLOAD];
@@ -1052,8 +1054,8 @@ void MyMesh::sendLoonPing(const mesh::GroupChannel& channel, const char* sender,
   memcpy(temp, &timestamp, 4);
   temp[4] = 0;
   snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
-           "%s: 🏓 @[%s] | Path %s | RSSI %d | SNR %.1f | Busy %u%%",
-           _prefs.node_name, sender, path, (int)_radio->getLastRSSI(), packet->getSNR(), busy);
+           "%s: 🏓 @[%s] | Hops: %u | Path: %s | RSSI %d | SNR %.1f | Busy %u%%",
+           _prefs.node_name, sender, hops, path, (int)_radio->getLastRSSI(), packet->getSNR(), busy);
   size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
   mesh::Packet* reply = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel, temp, 5 + len);
   if (reply) {
@@ -1117,11 +1119,10 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (strcmp(sender, _prefs.node_name) == 0) return;
   bool is_ping = loonCommandIs(body, "!ping");
   bool is_help = !is_public && loonCommandIs(body, "!help");
-  bool is_about = !is_public && loonCommandIs(body, "!about");
   bool is_roll = !is_public && loonCommandIs(body, "!roll");
   bool is_rps = !is_public && loonCommandIs(body, "!rps");
   bool is_rps3 = !is_public && loonCommandIs(body, "!rps3");
-  if (!is_ping && !is_help && !is_about && !is_roll && !is_rps && !is_rps3) return;
+  if (!is_ping && !is_help && !is_roll && !is_rps && !is_rps3) return;
   if (is_ping && !(is_public ? loon_prefs.ping_public : loon_prefs.ping_test)) return;
   if (is_help && !loon_prefs.help_test) return;
   if (is_roll && !loon_prefs.roll_test) return;
@@ -1152,7 +1153,7 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (is_ping) {
     sendLoonPing(channel, sender, packet);
   } else if (is_help) {
-    sendLoonReply(channel, "Commands: ping, roll, rps, rps3, about. Use the ! prefix.");
+    sendLoonReply(channel, "Commands: ping, roll, rps, rps3. Use the ! prefix.");
   } else if (is_roll) {
     char result[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
     uint32_t value = getRNG()->nextInt(1, 7);
@@ -1166,11 +1167,6 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
       loon_rps3_remaining = 3;
       loon_next_rps3_throw = futureMillis(10000UL);
     }
-  } else {
-    char about[LOON_MAX_ANNOUNCEMENT_TEXT + 1];
-    if (_prefs.owner_info[0]) snprintf(about, sizeof(about), "%s | %s", FIRMWARE_VERSION, _prefs.owner_info);
-    else StrHelper::strncpy(about, FIRMWARE_VERSION, sizeof(about));
-    sendLoonReply(channel, about);
   }
 }
 

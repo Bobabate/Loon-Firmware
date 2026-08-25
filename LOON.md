@@ -18,7 +18,7 @@ repeater operation as the highest priority.
   region/preset names are not included.
 - Normal MeshCore repeating and authenticated repeater administration.
 - `!ping` on Public and `#test` through the per-channel ping controls.
-- `!help` and `!about` on `#test` only. `!help` is independently controlled by
+- `!help` on `#test` only. It is independently controlled by
   persistent authenticated `loon.help.test on|off` and defaults to off on a
   clean installation.
 - `!roll` for one six-sided die on `#test` only.
@@ -58,16 +58,17 @@ The selected standard channel is derived from its name, such as `Public`,
 Routed:
 
 ```text
-Loon: 🏓 @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
+Loon: 🏓 @[your-name] | Hops: 3 | Path: A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
 ```
 
 Direct:
 
 ```text
-Loon: 🏓 @[your-name] | Path direct | RSSI -91 | SNR 10.2 | Busy 3%
+Loon: 🏓 @[your-name] | Hops: 0 | Path: direct | RSSI -91 | SNR 10.2 | Busy 3%
 ```
 
-The path is the actual inbound hop-hash sequence. Incoming 1-, 2-, and 3-byte
+The hop count is the number of repeater hashes in the actual inbound path; the
+receiving companion endpoint does not add a hop. Incoming 1-, 2-, and 3-byte
 hash widths are preserved for display; Loon defaults to 3-byte response paths.
 
 ## Announcement

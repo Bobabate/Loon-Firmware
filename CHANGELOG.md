@@ -3,6 +3,13 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L8 - 2026-08-25
+
+- Remove the `!about` command entirely.
+- Put the repeater-hop count before the route in ping replies using
+  `Hops: N | Path: ...`. The count includes only the inbound repeater hashes;
+  the receiving companion endpoint does not add a hop.
+
 ## 1.17.1-L7 - 2026-08-25
 
 - Add an authenticated persistent `loon.help.test on|off` setting that controls

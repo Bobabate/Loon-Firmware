@@ -60,18 +60,18 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L7.
+- Current release: v1.17.1-L8.
 
 ## Features
 
 - Normal MeshCore repeater operation remains the priority.
 - Public accepts only `!ping`; it follows `loon.ping.public`.
-- `#test` recognizes `!ping`, `!help`, `!about`, `!roll`, `!rps`, and `!rps3`;
+- `#test` recognizes `!ping`, `!help`, `!roll`, `!rps`, and `!rps3`;
   ping follows `loon.ping.test`, and help follows `loon.help.test`.
 - `!roll` rolls one six-sided die on `#test`; Public ignores it.
 - `!rps` randomly chooses rock, paper, or scissors on `#test`; Public ignores it.
 - `!rps3` sends three random throws 10 seconds apart on `#test`; Public ignores it.
-- Authenticated administration can persistently enable or disable dice with
+- Authenticated administration can persistently enable or disable commands with
   `loon.help.test on|off`, `loon.roll on|off`, and both RPS modes with
   `loon.rps on|off`. Help and both game controls default to off on a clean
   installation.
@@ -100,7 +100,6 @@ The current source supports these channel commands:
 !rps
 !rps3
 !help
-!about
 ```
 
 The command is case-insensitive, tolerates surrounding spaces, and must be the
@@ -109,7 +108,7 @@ entire message. Loon ignores its own messages.
 On `#test`, `!help` returns:
 
 ```text
-Loon: Commands: ping, roll, rps, rps3, about. Use the ! prefix.
+Loon: Commands: ping, roll, rps, rps3. Use the ! prefix.
 ```
 
 Public does not accept `!help`. The `#test` help response deliberately contains
@@ -155,36 +154,23 @@ loon.rps off
 loon.rps on
 ```
 
-`!about` returns the firmware version and the standard MeshCore owner message:
-
-```text
-Loon v0.1.3 | Operated by your-name
-```
-
-Set the owner message through authenticated administration:
-
-```text
-set owner.info Operated by your-name
-```
-
-If `owner.info` is empty, `!about` returns only the firmware version.
-
 Direct response:
 
 ```text
-Loon: 🏓 @[your-name] | Path direct | RSSI -29 | SNR 11.8 | Busy 1%
+Loon: 🏓 @[your-name] | Hops: 0 | Path: direct | RSSI -29 | SNR 11.8 | Busy 1%
 ```
 
 Routed response:
 
 ```text
-Loon: 🏓 @[your-name] | Path A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
+Loon: 🏓 @[your-name] | Hops: 3 | Path: A41C72>19B003>CE821F | RSSI -106 | SNR 6.5 | Busy 8%
 ```
 
-`Path` is the inbound route observed by Loon. A directly received request is
-shown as `direct`; routed requests show hop hashes separated by `>`. Incoming
-1-, 2-, and 3-byte hashes are preserved for display. Replies use 3-byte path
-hashes.
+`Hops` counts only the repeater hashes in the inbound route; the receiving
+companion endpoint does not add a hop. `Path` is the same route observed by
+Loon. A directly received request is shown as `direct`; routed requests show
+hop hashes separated by `>`. Incoming 1-, 2-, and 3-byte hashes are preserved
+for display. Replies use 3-byte path hashes.
 
 Command rate protection:
 
@@ -405,8 +391,8 @@ and boosted receive gain.
 - `!roll` works on `#test` and is ignored on Public.
 - `!rps` works on `#test` and is ignored on Public.
 - `!rps3` sends exactly three throws on `#test` and ignores overlapping starts.
-- `!about` shows the firmware version and configured owner message.
-- A direct ping displays `Path direct`.
+- `!about` is ignored.
+- A direct ping displays `Hops: 0 | Path: direct`.
 - A routed ping displays the observed hop hashes.
 - RSSI, SNR, and Busy values are plausible.
 - Disabled channels produce no bot response.

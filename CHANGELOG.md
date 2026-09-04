@@ -3,6 +3,12 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## Unreleased — next version
+
+- Keep the optional Discord `Hops: N | Path: ...` section on the same line as
+  the forwarded message, separated by a space, while preserving its current
+  formatting.
+
 ## 1.17.1-L9 - 2026-08-25
 
 - Add the inbound repeater-hop count to the optional Discord webhook path line,

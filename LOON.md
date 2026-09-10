@@ -1,16 +1,18 @@
 # Loon Firmware
 
 Loon Firmware is a standalone MeshCore repeater-bot for the original Heltec
-WiFi LoRa 32 V3 (8 MB flash, no PSRAM required), both Heltec T114 variants,
-the Seeed SenseCAP Solar Node P1/P1 Pro, and RAK4631 repeaters including the
-WisMesh Repeater Mini. It starts from current upstream MeshCore and keeps
-repeater operation as the highest priority.
+WiFi LoRa 32 V3 (8 MB flash, no PSRAM required), the standard 2 MB PSRAM
+Heltec WiFi LoRa 32 V4.3 with or without OLED, both Heltec T114 variants, the
+Seeed SenseCAP Solar Node P1/P1 Pro, and RAK4631 repeaters including the WisMesh
+Repeater Mini. It starts from current upstream MeshCore and keeps repeater
+operation as the highest priority.
 
 ## Version 0.1 scope
 
-- Heltec WiFi LoRa 32 V3, display-equipped and displayless Heltec T114, and
-  RAK4631 repeater targets, plus one shared target for the Seeed SenseCAP Solar
-  Node P1 and P1 Pro.
+- Heltec WiFi LoRa 32 V3, standard-R2 Heltec WiFi LoRa 32 V4.3 with and without
+  OLED, display-equipped and displayless Heltec T114, and RAK4631 repeater
+  targets, plus one shared target for the Seeed SenseCAP Solar Node P1 and P1
+  Pro. The separate Heltec V4 R8 model is not a Loon target.
 - Clean/full installs use ordinary upstream MeshCore radio defaults and retain
   MeshCore's standard public development administrator password. Provision the
   radio for the intended network and change the password before deployment.
@@ -34,11 +36,12 @@ repeater operation as the highest priority.
 
 ## Discord webhook bridge
 
-On ESP32 targets such as the Heltec V3, Loon can forward one explicitly
-selected MeshCore channel to one Discord webhook. Each MeshCore message becomes
-one Discord message, with the MeshCore sender as the webhook username and the
-original message text. The optional path display adds a formatted line containing
-the inbound repeater-hop count and exact path IDs (`Hops: N | Path: ...`). Loon
+On ESP32 targets such as the Heltec V3 and standard-R2 Heltec V4.3, Loon can
+forward one explicitly selected MeshCore channel to one Discord webhook. Each
+MeshCore message becomes one Discord message, with the MeshCore sender as the
+webhook username and the original message text. The optional path display adds
+a same-line formatted section containing the inbound repeater-hop count and
+exact path IDs (`Hops: N | Path: ...`). Loon
 ping replies label the path as the request path, and direct receptions are shown
 as `Hops: 0 | Path: direct`. The setting controls the complete hops-and-path line
 and defaults to off. Discord mentions are disabled.
@@ -119,12 +122,15 @@ Install PlatformIO, then run:
 
 ```sh
 ./build_loon_heltec_v3.sh
+./build_loon_heltec_v4.sh
+./build_loon_heltec_v4_without_display.sh
 ./build_loon_rak4631_repeater_mini.sh
 ```
 
-The build environments are `Loon_heltec_v3_repeater` and
-`Loon_RAK4631_repeater_mini`. The RAK target retains the official MeshCore
-RAK4631 repeater feature set and adds Loon without replacing that target.
+The V4.3 build environments are `Loon_heltec_v4_repeater` and
+`Loon_heltec_v4_without_display_repeater`. Both use the standard 2 MB PSRAM
+board definition. The RAK target retains the official MeshCore RAK4631 repeater
+feature set and adds Loon without replacing that target.
 
 ## Administration
 
@@ -135,6 +141,7 @@ CLI:
 loon
 loon.ping.public on|off
 loon.ping.test on|off
+loon.help.test on|off
 loon.announce.public off|hourly|daily
 loon.announce.test off|hourly|daily
 loon.announce.message [text|clear]

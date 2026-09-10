@@ -3,11 +3,14 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
-## Unreleased — next version
+## 1.17.1-L10 - 2026-09-09
 
 - Keep the optional Discord `Hops: N | Path: ...` section on the same line as
   the forwarded message, separated by a space, while preserving its current
   formatting.
+- Add Loon repeater builds for the standard 2 MB PSRAM Heltec WiFi LoRa 32
+  V4.3, in OLED and displayless variants. The separate 8 MB PSRAM R8 board is
+  not included.
 
 ## 1.17.1-L9 - 2026-08-25
 

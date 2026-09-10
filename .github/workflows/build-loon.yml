@@ -15,6 +15,9 @@ on:
         options:
           - all
           - heltec-v3
+          - heltec-v4
+          - heltec-v4-oled
+          - heltec-v4-no-display
           - rak4631
           - t114
           - t114-display
@@ -39,10 +42,19 @@ jobs:
         run: |
           case "$BOARD_CHOICE" in
             all)
-              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"},{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"},{"name":"SenseCAP-Solar-P1-P1-Pro","target":"Loon_SenseCap_Solar_repeater"}]'
+              value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"},{"name":"Heltec-V4.3-OLED","target":"Loon_heltec_v4_repeater"},{"name":"Heltec-V4.3-No-Display","target":"Loon_heltec_v4_without_display_repeater"},{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"},{"name":"Heltec-T114-Display","target":"Loon_heltec_t114_repeater"},{"name":"Heltec-T114-No-Display","target":"Loon_heltec_t114_without_display_repeater"},{"name":"SenseCAP-Solar-P1-P1-Pro","target":"Loon_SenseCap_Solar_repeater"}]'
               ;;
             heltec-v3)
               value='[{"name":"Heltec-V3","target":"Loon_heltec_v3_repeater"}]'
+              ;;
+            heltec-v4)
+              value='[{"name":"Heltec-V4.3-OLED","target":"Loon_heltec_v4_repeater"},{"name":"Heltec-V4.3-No-Display","target":"Loon_heltec_v4_without_display_repeater"}]'
+              ;;
+            heltec-v4-oled)
+              value='[{"name":"Heltec-V4.3-OLED","target":"Loon_heltec_v4_repeater"}]'
+              ;;
+            heltec-v4-no-display)
+              value='[{"name":"Heltec-V4.3-No-Display","target":"Loon_heltec_v4_without_display_repeater"}]'
               ;;
             rak4631)
               value='[{"name":"RAK4631-Repeater-Mini","target":"Loon_RAK4631_repeater_mini"}]'
@@ -105,21 +117,21 @@ jobs:
             echo "No packaged firmware files were produced for $TARGET" >&2
             exit 1
           fi
-          if [[ "$TARGET" == "Loon_heltec_v3_repeater" ]]; then
-            app=(out/"$TARGET"-*.bin)
-            merged=(out/"$TARGET"-*-merged.bin)
-            if (( ${#app[@]} < 2 || ${#merged[@]} != 1 )); then
-              echo "Heltec build must contain application and merged images" >&2
+          if [[ "$TARGET" == "Loon_heltec_v3_repeater" || "$TARGET" == Loon_heltec_v4_* ]]; then
+            app=(out/"$TARGET"-"$VERSION".bin)
+            merged=(out/"$TARGET"-"$VERSION"-merged.bin)
+            if (( ${#app[@]} != 1 || ${#merged[@]} != 1 )); then
+              echo "ESP32 build must contain one application and one merged image" >&2
               exit 1
             fi
             if ! strings ".pio/build/$TARGET/firmware.elf" | grep -Fq "MeshCore-OTA"; then
-              echo "Heltec V3 firmware is missing Wi-Fi OTA support" >&2
+              echo "ESP32 firmware is missing Wi-Fi OTA support" >&2
               exit 1
             fi
           else
             uf2=(out/"$TARGET"-*.uf2)
             if (( ${#uf2[@]} != 1 )); then
-              echo "RAK4631 build must contain one UF2 image" >&2
+              echo "nRF52 build must contain one UF2 image" >&2
               exit 1
             fi
           fi

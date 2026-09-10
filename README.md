@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L9.
+- Current release: v1.17.1-L10.
 
 ## Features
 
@@ -81,10 +81,11 @@ include a region or preset name.
 - Duplicate/rate protection and busy-channel delay reduce unnecessary airtime.
 - OLED shows the normal repeater information.
 - Existing authenticated MeshCore remote administration remains available.
-- Heltec V3 can forward one selected MeshCore channel to Discord, one message
-  per post, using the MeshCore sender as the webhook username.
-- Heltec V3 webhook posts can optionally include the inbound repeater-hop count
-  and exact path IDs on a formatted second line (`Hops: N | Path: ...`). Loon
+- ESP32 boards (Heltec V3 and standard-R2 Heltec V4.3) can forward one selected
+  MeshCore channel to Discord, one message per post, using the MeshCore sender
+  as the webhook username.
+- Their webhook posts can optionally include the inbound repeater-hop count
+  and exact path IDs on the same line (`Hops: N | Path: ...`). Loon
   ping replies label the same information as the request path. This display
   option defaults to off and controls the complete hops-and-path line.
 - Wi-Fi is off during normal operation; the existing authenticated OTA mode is
@@ -367,14 +368,22 @@ Install PlatformIO, clone the repository, and run:
 
 ```sh
 ./build_loon_heltec_v3.sh
+./build_loon_heltec_v4.sh
+./build_loon_heltec_v4_without_display.sh
 ./build_loon_rak4631_repeater_mini.sh
 ```
 
-The PlatformIO environments are `Loon_heltec_v3_repeater` and
-`Loon_RAK4631_repeater_mini`. The resulting firmware images are:
+The ESP32 PlatformIO environments are `Loon_heltec_v3_repeater`,
+`Loon_heltec_v4_repeater`, and
+`Loon_heltec_v4_without_display_repeater`. The V4.3 targets use the standard
+2 MB PSRAM board definition, not the 8 MB PSRAM R8 definition. The RAK4631
+environment is `Loon_RAK4631_repeater_mini`. Example resulting firmware images
+are:
 
 ```text
 .pio/build/Loon_heltec_v3_repeater/firmware.bin
+.pio/build/Loon_heltec_v4_repeater/firmware.bin
+.pio/build/Loon_heltec_v4_without_display_repeater/firmware.bin
 .pio/build/Loon_RAK4631_repeater_mini/firmware.zip
 ```
 

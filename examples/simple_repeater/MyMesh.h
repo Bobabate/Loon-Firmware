@@ -136,6 +136,9 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   unsigned long loon_command_sender_times[8];
   uint32_t loon_busy_sample_at, loon_busy_tx_at, loon_busy_rx_at;
   uint8_t loon_busy_percent;
+  uint32_t loon_last_clock_epoch;
+  unsigned long loon_last_clock_check_at;
+  bool loon_clock_was_valid;
 
 #if defined(ESP32)
   struct LoonWebhookPrefs {
@@ -184,9 +187,10 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   uint32_t calcLoonPrefsChecksum() const;
   uint8_t calcLoonBusyPercent();
   uint32_t calcLoonBusyDelay(uint8_t busy) const;
+  void checkLoonClock();
   void scheduleLoonAnnouncements();
   unsigned long nextLoonAnnouncement(uint8_t mode) const;
-  void sendLoonAnnouncement(const mesh::GroupChannel& channel);
+  bool sendLoonAnnouncement(const mesh::GroupChannel& channel);
   void sendLoonReply(const mesh::GroupChannel& channel, const char* text);
   void sendLoonPing(const mesh::GroupChannel& channel, const char* sender, const mesh::Packet* packet);
   bool isLoonChannel(const mesh::GroupChannel& channel, bool& is_public) const;

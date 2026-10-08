@@ -60,7 +60,7 @@ password before deployment. The default node name is `Loon`.
 Release filenames identify the version, board, and image type. They do not
 include a region or preset name.
 
-- Current release: v1.17.1-L10.
+- Current release: v1.17.1-L11.
 
 ## Features
 
@@ -81,7 +81,7 @@ include a region or preset name.
 - Duplicate/rate protection and busy-channel delay reduce unnecessary airtime.
 - OLED shows the normal repeater information.
 - Existing authenticated MeshCore remote administration remains available.
-- ESP32 boards (Heltec V3 and standard-R2 Heltec V4.3) can forward one selected
+- ESP32 boards (Heltec V3, V4-R2/V4.3, and V4-R8) can forward one selected
   MeshCore channel to Discord, one message per post, using the MeshCore sender
   as the webhook username.
 - Their webhook posts can optionally include the inbound repeater-hop count
@@ -370,13 +370,15 @@ Install PlatformIO, clone the repository, and run:
 ./build_loon_heltec_v3.sh
 ./build_loon_heltec_v4.sh
 ./build_loon_heltec_v4_without_display.sh
+./build_loon_heltec_v4_r8.sh
 ./build_loon_rak4631_repeater_mini.sh
 ```
 
 The ESP32 PlatformIO environments are `Loon_heltec_v3_repeater`,
 `Loon_heltec_v4_repeater`, and
-`Loon_heltec_v4_without_display_repeater`. The V4.3 targets use the standard
-2 MB PSRAM board definition, not the 8 MB PSRAM R8 definition. The RAK4631
+`Loon_heltec_v4_without_display_repeater`. These V4-R2/V4.3 targets use the
+standard 2 MB PSRAM board definition. The V4-R8 OLED environment is
+`Loon_heltec_v4_r8_repeater` and uses the separate 8 MB PSRAM definition. The RAK4631
 environment is `Loon_RAK4631_repeater_mini`. Example resulting firmware images
 are:
 
@@ -384,6 +386,7 @@ are:
 .pio/build/Loon_heltec_v3_repeater/firmware.bin
 .pio/build/Loon_heltec_v4_repeater/firmware.bin
 .pio/build/Loon_heltec_v4_without_display_repeater/firmware.bin
+.pio/build/Loon_heltec_v4_r8_repeater/firmware.bin
 .pio/build/Loon_RAK4631_repeater_mini/firmware.zip
 ```
 

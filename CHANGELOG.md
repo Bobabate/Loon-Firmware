@@ -3,6 +3,19 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L11 - 2026-10-07
+
+- Make scheduled announcements use Loon's configured bounded busy-channel
+  delay instead of silently discarding a due announcement at 80% utilization.
+- Retry announcement packet-allocation failures after 10 seconds and
+  recalculate schedules when the device clock becomes valid or changes.
+- Reject the ESP32 fallback date as a valid scheduling clock so power-cycled
+  devices wait for a real clock synchronization instead of announcing at an
+  incorrect wall-clock time.
+- Identify the existing 2 MB PSRAM Heltec V4 target as V4-R2 and add a Loon
+  OLED repeater target for the 8 MB PSRAM Heltec V4-R8, including GitHub
+  Actions selection and release packaging.
+
 ## 1.17.1-L10 - 2026-09-09
 
 - Keep the optional Discord `Hops: N | Path: ...` section on the same line as

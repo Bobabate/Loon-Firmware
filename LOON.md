@@ -2,17 +2,17 @@
 
 Loon Firmware is a standalone MeshCore repeater-bot for the original Heltec
 WiFi LoRa 32 V3 (8 MB flash, no PSRAM required), the standard 2 MB PSRAM
-Heltec WiFi LoRa 32 V4.3 with or without OLED, both Heltec T114 variants, the
-Seeed SenseCAP Solar Node P1/P1 Pro, and RAK4631 repeaters including the WisMesh
-Repeater Mini. It starts from current upstream MeshCore and keeps repeater
-operation as the highest priority.
+Heltec WiFi LoRa 32 V4-R2/V4.3 with or without OLED, the OLED-equipped V4-R8,
+both Heltec T114 variants, the Seeed SenseCAP Solar Node P1/P1 Pro, and RAK4631
+repeaters including the WisMesh Repeater Mini. It starts from current upstream
+MeshCore and keeps repeater operation as the highest priority.
 
 ## Version 0.1 scope
 
-- Heltec WiFi LoRa 32 V3, standard-R2 Heltec WiFi LoRa 32 V4.3 with and without
-  OLED, display-equipped and displayless Heltec T114, and RAK4631 repeater
-  targets, plus one shared target for the Seeed SenseCAP Solar Node P1 and P1
-  Pro. The separate Heltec V4 R8 model is not a Loon target.
+- Heltec WiFi LoRa 32 V3, standard 2 MB PSRAM Heltec V4-R2/V4.3 with and
+  without OLED, 8 MB PSRAM Heltec V4-R8 with OLED, display-equipped and
+  displayless Heltec T114, and RAK4631 repeater targets, plus one shared target
+  for the Seeed SenseCAP Solar Node P1 and P1 Pro.
 - Clean/full installs use ordinary upstream MeshCore radio defaults and retain
   MeshCore's standard public development administrator password. Provision the
   radio for the intended network and change the password before deployment.
@@ -36,7 +36,7 @@ operation as the highest priority.
 
 ## Discord webhook bridge
 
-On ESP32 targets such as the Heltec V3 and standard-R2 Heltec V4.3, Loon can
+On ESP32 targets such as the Heltec V3, V4-R2/V4.3, and V4-R8, Loon can
 forward one explicitly selected MeshCore channel to one Discord webhook. Each
 MeshCore message becomes one Discord message, with the MeshCore sender as the
 webhook username and the original message text. The optional path display adds
@@ -104,7 +104,8 @@ Additional defaults:
 - No catch-up announcement after reboot.
 - Use valid MeshCore wall-clock time; do not guess it.
 - Add 0-30 seconds of announcement jitter.
-- Defer bot traffic above 20% channel utilization.
+- Defer bot traffic above 20% channel utilization for up to the configured
+  maximum instead of discarding an announcement.
 - Repeater traffic always takes priority.
 
 ## Development boundaries
@@ -124,11 +125,13 @@ Install PlatformIO, then run:
 ./build_loon_heltec_v3.sh
 ./build_loon_heltec_v4.sh
 ./build_loon_heltec_v4_without_display.sh
+./build_loon_heltec_v4_r8.sh
 ./build_loon_rak4631_repeater_mini.sh
 ```
 
-The V4.3 build environments are `Loon_heltec_v4_repeater` and
-`Loon_heltec_v4_without_display_repeater`. Both use the standard 2 MB PSRAM
+The V4-R2/V4.3 build environments are `Loon_heltec_v4_repeater` and
+`Loon_heltec_v4_without_display_repeater`. The V4-R8 OLED environment is
+`Loon_heltec_v4_r8_repeater`. The R2 targets use the standard 2 MB PSRAM
 board definition. The RAK target retains the official MeshCore RAK4631 repeater
 feature set and adds Loon without replacing that target.
 

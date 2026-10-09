@@ -68,6 +68,8 @@
 #define LOON_ANNOUNCE_HOURLY         1
 #define LOON_ANNOUNCE_DAILY          2
 #define LOON_VALID_CLOCK             1767225600UL // 2026-01-01; reject ESP32's 2024 fallback clock
+#define LOON_HOURLY_INTERVAL_MS       3600000UL
+#define LOON_ANNOUNCEMENT_MIN_GAP_MS  2700000UL // 45 minutes
 #define LOON_COMMAND_COOLDOWN_MS     10000UL
 #define LOON_COMMAND_SENDER_SLOTS    8
 #define LOON_MAX_ANNOUNCEMENT_TEXT   (MAX_PACKET_PAYLOAD - CIPHER_BLOCK_SIZE - 5)
@@ -1172,10 +1174,14 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   }
 }
 
-unsigned long MyMesh::nextLoonAnnouncement(uint8_t mode) const {
+unsigned long MyMesh::nextLoonAnnouncement(uint8_t mode, unsigned long last_sent_at) const {
   if (mode == LOON_ANNOUNCE_OFF) return 0;
   uint32_t epoch = getRTCClock()->getCurrentTime();
-  if (epoch < LOON_VALID_CLOCK) return futureMillis(60000UL);
+  if (epoch < LOON_VALID_CLOCK) {
+    // Hourly status is also an uptime heartbeat, so keep it running when a
+    // reset leaves the wall clock at 1970. Daily mode still needs wall time.
+    return futureMillis(mode == LOON_ANNOUNCE_HOURLY ? LOON_HOURLY_INTERVAL_MS : 60000UL);
+  }
   int64_t local = (int64_t)epoch + (int64_t)loon_prefs.timezone_minutes * 60;
   uint32_t delta;
   if (mode == LOON_ANNOUNCE_HOURLY) {
@@ -1187,12 +1193,24 @@ unsigned long MyMesh::nextLoonAnnouncement(uint8_t mode) const {
     delta = (uint32_t)(target - local);
   }
   uint32_t jitter = getRNG()->nextInt(0, 30001);
+  if (mode == LOON_ANNOUNCE_HOURLY && last_sent_at) {
+    uint32_t elapsed = millis() - last_sent_at;
+    uint32_t until_next = delta * 1000UL + jitter;
+    // If clock synchronization makes the next wall-clock hour too close to
+    // an uptime-based announcement, skip that hour and remain aligned.
+    if (elapsed < LOON_ANNOUNCEMENT_MIN_GAP_MS &&
+        until_next < LOON_ANNOUNCEMENT_MIN_GAP_MS - elapsed) {
+      delta += 3600UL;
+    }
+  }
   return futureMillis(delta * 1000UL + jitter);
 }
 
 void MyMesh::scheduleLoonAnnouncements() {
-  loon_next_public_announcement = nextLoonAnnouncement(loon_prefs.announce_public);
-  loon_next_test_announcement = nextLoonAnnouncement(loon_prefs.announce_test);
+  loon_next_public_announcement = nextLoonAnnouncement(loon_prefs.announce_public,
+                                                        loon_last_public_announcement);
+  loon_next_test_announcement = nextLoonAnnouncement(loon_prefs.announce_test,
+                                                      loon_last_test_announcement);
 }
 
 void MyMesh::checkLoonClock() {
@@ -1768,6 +1786,7 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
   resetLoonPrefs();
   loon_public_ready = loon_test_ready = false;
   loon_next_public_announcement = loon_next_test_announcement = 0;
+  loon_last_public_announcement = loon_last_test_announcement = 0;
   loon_next_rps3_throw = 0;
   loon_rps3_remaining = 0;
   memset(loon_command_sender_hashes, 0, sizeof(loon_command_sender_hashes));
@@ -2354,20 +2373,28 @@ void MyMesh::loop() {
   if (loon_next_public_announcement && millisHasNowPassed(loon_next_public_announcement)) {
     bool clock_valid = getRTCClock()->getCurrentTime() >= LOON_VALID_CLOCK;
     bool sent = false;
-    if (loon_prefs.announce_public && clock_valid)
+    if (loon_prefs.announce_public &&
+        (clock_valid || loon_prefs.announce_public == LOON_ANNOUNCE_HOURLY))
       sent = sendLoonAnnouncement(loon_public_channel);
-    loon_next_public_announcement = clock_valid && !sent && loon_prefs.announce_public
+    if (sent) loon_last_public_announcement = millis() ? millis() : 1;
+    loon_next_public_announcement = !sent && loon_prefs.announce_public &&
+                                    (clock_valid || loon_prefs.announce_public == LOON_ANNOUNCE_HOURLY)
                                       ? futureMillis(10000UL)
-                                      : nextLoonAnnouncement(loon_prefs.announce_public);
+                                      : nextLoonAnnouncement(loon_prefs.announce_public,
+                                                             loon_last_public_announcement);
   }
   if (loon_next_test_announcement && millisHasNowPassed(loon_next_test_announcement)) {
     bool clock_valid = getRTCClock()->getCurrentTime() >= LOON_VALID_CLOCK;
     bool sent = false;
-    if (loon_prefs.announce_test && clock_valid)
+    if (loon_prefs.announce_test &&
+        (clock_valid || loon_prefs.announce_test == LOON_ANNOUNCE_HOURLY))
       sent = sendLoonAnnouncement(loon_test_channel);
-    loon_next_test_announcement = clock_valid && !sent && loon_prefs.announce_test
+    if (sent) loon_last_test_announcement = millis() ? millis() : 1;
+    loon_next_test_announcement = !sent && loon_prefs.announce_test &&
+                                  (clock_valid || loon_prefs.announce_test == LOON_ANNOUNCE_HOURLY)
                                     ? futureMillis(10000UL)
-                                    : nextLoonAnnouncement(loon_prefs.announce_test);
+                                    : nextLoonAnnouncement(loon_prefs.announce_test,
+                                                           loon_last_test_announcement);
   }
   if (loon_rps3_remaining && loon_next_rps3_throw && millisHasNowPassed(loon_next_rps3_throw)) {
     static const char* choices[] = {"🪨", "📄", "✂️"};

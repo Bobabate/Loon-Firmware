@@ -130,6 +130,7 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   mesh::GroupChannel loon_public_channel, loon_test_channel;
   bool loon_public_ready, loon_test_ready;
   unsigned long loon_next_public_announcement, loon_next_test_announcement;
+  unsigned long loon_last_public_announcement, loon_last_test_announcement;
   unsigned long loon_next_rps3_throw;
   uint8_t loon_rps3_remaining;
   uint32_t loon_command_sender_hashes[8];
@@ -189,7 +190,7 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   uint32_t calcLoonBusyDelay(uint8_t busy) const;
   void checkLoonClock();
   void scheduleLoonAnnouncements();
-  unsigned long nextLoonAnnouncement(uint8_t mode) const;
+  unsigned long nextLoonAnnouncement(uint8_t mode, unsigned long last_sent_at = 0) const;
   bool sendLoonAnnouncement(const mesh::GroupChannel& channel);
   void sendLoonReply(const mesh::GroupChannel& channel, const char* text);
   void sendLoonPing(const mesh::GroupChannel& channel, const char* sender, const mesh::Packet* packet);

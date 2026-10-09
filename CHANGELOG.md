@@ -3,6 +3,16 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.17.1-L12 - 2026-10-09
+
+- Keep hourly status announcements running at 60-minute monotonic intervals
+  while the wall clock is invalid, including after a reset leaves it at 1970.
+- Return automatically to top-of-hour scheduling when valid time is restored,
+  skipping a too-close clock-hour announcement to preserve a 45-minute minimum
+  gap. Keep the visible 1970 date and the existing status payload unchanged.
+- Apply and validate the behavior across all Loon Heltec V4 targets: R2 OLED,
+  R2 no-display, and R8 OLED.
+
 ## 1.17.1-L11 - 2026-10-07
 
 - Make scheduled announcements use Loon's configured bounded busy-channel

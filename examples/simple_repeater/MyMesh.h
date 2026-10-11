@@ -141,6 +141,19 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   unsigned long loon_last_clock_check_at;
   bool loon_clock_was_valid;
 
+#if defined(LOON_V4_ECHO_RX_TEST)
+  // TEMPORARY: remove after the Bickford Heltec V4 comparison.
+  struct LoonEchoRxPrefs {
+    uint32_t magic;
+    uint8_t version;
+    uint8_t enabled;
+    uint16_t reserved;
+    uint32_t checksum;
+  } loon_echo_rx_prefs;
+  mesh::GroupChannel loon_echo_rx_channel;
+  bool loon_echo_rx_channel_ready;
+#endif
+
 #if defined(ESP32)
   struct LoonWebhookPrefs {
     uint32_t magic;
@@ -195,6 +208,15 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   void sendLoonReply(const mesh::GroupChannel& channel, const char* text);
   void sendLoonPing(const mesh::GroupChannel& channel, const char* sender, const mesh::Packet* packet);
   bool isLoonChannel(const mesh::GroupChannel& channel, bool& is_public) const;
+#if defined(LOON_V4_ECHO_RX_TEST)
+  void resetLoonEchoRxPrefs();
+  void loadLoonEchoRxPrefs();
+  void saveLoonEchoRxPrefs();
+  uint32_t calcLoonEchoRxPrefsChecksum() const;
+  void initLoonEchoRxChannel();
+  bool isLoonEchoRxChannel(const mesh::GroupChannel& channel) const;
+  void sendLoonEchoRxReport(const mesh::Packet* packet);
+#endif
 #endif
 #if MAX_NEIGHBOURS
   NeighbourInfo neighbours[MAX_NEIGHBOURS];

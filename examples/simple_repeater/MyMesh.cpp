@@ -73,6 +73,13 @@
 #define LOON_COMMAND_COOLDOWN_MS     10000UL
 #define LOON_COMMAND_SENDER_SLOTS    8
 #define LOON_MAX_ANNOUNCEMENT_TEXT   (MAX_PACKET_PAYLOAD - CIPHER_BLOCK_SIZE - 5)
+#if defined(LOON_V4_ECHO_RX_TEST)
+// TEMPORARY: hidden Bickford receiver test. Remove after the Heltec V4 comparison.
+#define LOON_ECHO_RX_PREFS_MAGIC      0x4C455258UL
+#define LOON_ECHO_RX_PREFS_VERSION    1
+#define LOON_ECHO_RX_PREFS_FILE       "/loon_echo_rx"
+#define LOON_ECHO_RX_CHANNEL_NAME     "#tdot"
+#endif
 #if defined(ESP32)
 #define LOON_WEBHOOK_PREFS_MAGIC      0x4C57484BUL
 #define LOON_WEBHOOK_PREFS_VERSION    1
@@ -791,6 +798,62 @@ void MyMesh::saveLoonPrefs() {
   }
 }
 
+#if defined(LOON_V4_ECHO_RX_TEST)
+uint32_t MyMesh::calcLoonEchoRxPrefsChecksum() const {
+  return calcLoonChecksum(&loon_echo_rx_prefs, offsetof(LoonEchoRxPrefs, checksum));
+}
+
+void MyMesh::resetLoonEchoRxPrefs() {
+  memset(&loon_echo_rx_prefs, 0, sizeof(loon_echo_rx_prefs));
+  loon_echo_rx_prefs.magic = LOON_ECHO_RX_PREFS_MAGIC;
+  loon_echo_rx_prefs.version = LOON_ECHO_RX_PREFS_VERSION;
+  loon_echo_rx_prefs.enabled = 0;
+  loon_echo_rx_prefs.checksum = calcLoonEchoRxPrefsChecksum();
+}
+
+void MyMesh::loadLoonEchoRxPrefs() {
+  resetLoonEchoRxPrefs();
+  if (!_fs->exists(LOON_ECHO_RX_PREFS_FILE)) return;
+  File file = _fs->open(LOON_ECHO_RX_PREFS_FILE);
+  if (!file || file.size() != sizeof(loon_echo_rx_prefs)) {
+    if (file) file.close();
+    return;
+  }
+  LoonEchoRxPrefs loaded;
+  bool read_ok = file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) == sizeof(loaded);
+  file.close();
+  bool valid = read_ok && loaded.magic == LOON_ECHO_RX_PREFS_MAGIC &&
+               loaded.version == LOON_ECHO_RX_PREFS_VERSION && loaded.enabled <= 1 &&
+               loaded.checksum == calcLoonChecksum(&loaded, offsetof(LoonEchoRxPrefs, checksum));
+  if (valid) loon_echo_rx_prefs = loaded;
+}
+
+void MyMesh::saveLoonEchoRxPrefs() {
+  loon_echo_rx_prefs.checksum = calcLoonEchoRxPrefsChecksum();
+  File file = _fs->open(LOON_ECHO_RX_PREFS_FILE, "w", true);
+  if (file) {
+    file.write(reinterpret_cast<const uint8_t*>(&loon_echo_rx_prefs), sizeof(loon_echo_rx_prefs));
+    file.close();
+  }
+}
+
+void MyMesh::initLoonEchoRxChannel() {
+  memset(&loon_echo_rx_channel, 0, sizeof(loon_echo_rx_channel));
+  mesh::Utils::sha256(loon_echo_rx_channel.secret, CIPHER_KEY_SIZE,
+                      reinterpret_cast<const uint8_t*>(LOON_ECHO_RX_CHANNEL_NAME),
+                      strlen(LOON_ECHO_RX_CHANNEL_NAME));
+  mesh::Utils::sha256(loon_echo_rx_channel.hash, sizeof(loon_echo_rx_channel.hash),
+                      loon_echo_rx_channel.secret, CIPHER_KEY_SIZE);
+  loon_echo_rx_channel_ready = true;
+}
+
+bool MyMesh::isLoonEchoRxChannel(const mesh::GroupChannel& channel) const {
+  return loon_echo_rx_prefs.enabled && loon_echo_rx_channel_ready &&
+         memcmp(channel.hash, loon_echo_rx_channel.hash, PATH_HASH_SIZE) == 0;
+}
+
+#endif
+
 #if defined(ESP32)
 uint32_t MyMesh::calcLoonWebhookPrefsChecksum() const {
   return calcLoonChecksum(&loon_webhook_prefs, offsetof(LoonWebhookPrefs, checksum));
@@ -1040,8 +1103,15 @@ int MyMesh::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channel
   bool already_added = (loon_public_ready && memcmp(hash, loon_public_channel.hash, PATH_HASH_SIZE) == 0) ||
                        (loon_test_ready && memcmp(hash, loon_test_channel.hash, PATH_HASH_SIZE) == 0);
   if (max_matches > count && !already_added && loon_webhook_channel_ready &&
-      memcmp(hash, loon_webhook_channel.hash, PATH_HASH_SIZE) == 0)
+      memcmp(hash, loon_webhook_channel.hash, PATH_HASH_SIZE) == 0) {
     channels[count++] = loon_webhook_channel;
+    already_added = true;
+  }
+#endif
+#if defined(LOON_V4_ECHO_RX_TEST)
+  if (max_matches > count && !already_added && loon_echo_rx_prefs.enabled &&
+      loon_echo_rx_channel_ready && memcmp(hash, loon_echo_rx_channel.hash, PATH_HASH_SIZE) == 0)
+    channels[count++] = loon_echo_rx_channel;
 #endif
   return count;
 }
@@ -1091,16 +1161,42 @@ void MyMesh::sendLoonReply(const mesh::GroupChannel& channel, const char* text) 
   }
 }
 
+#if defined(LOON_V4_ECHO_RX_TEST)
+void MyMesh::sendLoonEchoRxReport(const mesh::Packet* packet) {
+  if (!packet || packet->getPathHashCount() != 0 || !loon_echo_rx_channel_ready) return;
+  uint8_t busy = calcLoonBusyPercent();
+  uint32_t delay_ms = calcLoonBusyDelay(busy);
+  uint8_t temp[MAX_PACKET_PAYLOAD];
+  // Capture Bickford's receive time in the MeshCore message timestamp while
+  // keeping the visible temporary report compact.
+  uint32_t rx_timestamp = getRTCClock()->getCurrentTimeUnique();
+  memcpy(temp, &rx_timestamp, 4);
+  temp[4] = 0;
+  snprintf(reinterpret_cast<char*>(&temp[5]), LOON_MAX_ANNOUNCEMENT_TEXT + 1,
+           "%s: RX Echo | 0h | RSSI %d | SNR %.1f", _prefs.node_name,
+           (int)_radio->getLastRSSI(), packet->getSNR());
+  size_t len = strlen(reinterpret_cast<char*>(&temp[5]));
+  mesh::Packet* report = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, loon_echo_rx_channel,
+                                              temp, 5 + len);
+  if (report) sendFlood(report, SERVER_RESPONSE_DELAY + delay_ms, 3);
+}
+#endif
+
 void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel& channel,
                              uint8_t* data, size_t len) {
   if (type != PAYLOAD_TYPE_GRP_TXT || len <= 5 || len >= MAX_PACKET_PAYLOAD) return;
   bool is_public = false;
   bool is_loon_channel = isLoonChannel(channel, is_public);
+#if defined(LOON_V4_ECHO_RX_TEST)
+  bool is_echo_rx_channel = isLoonEchoRxChannel(channel);
+#else
+  bool is_echo_rx_channel = false;
+#endif
 #if defined(ESP32)
   bool is_webhook_channel = isLoonWebhookChannel(channel);
-  if (!is_loon_channel && !is_webhook_channel) return;
+  if (!is_loon_channel && !is_webhook_channel && !is_echo_rx_channel) return;
 #else
-  if (!is_loon_channel) return;
+  if (!is_loon_channel && !is_echo_rx_channel) return;
 #endif
   if ((data[4] >> 2) != TXT_TYPE_PLAIN) return;
   data[len] = 0;
@@ -1118,6 +1214,14 @@ void MyMesh::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::Gro
   if (!sender[0]) StrHelper::strncpy(sender, "Unknown", sizeof(sender));
 #if defined(ESP32)
   if (is_webhook_channel) queueLoonWebhookMessage(channel, sender, body, packet, "Path");
+#endif
+#if defined(LOON_V4_ECHO_RX_TEST)
+  // Ignore an Echo reflection of our own measurement to prevent a report loop.
+  if (is_echo_rx_channel && strcmp(sender, "Echo") == 0 &&
+      strstr(body, "RX Echo |") == nullptr && packet &&
+      packet->getPathHashCount() == 0) {
+    sendLoonEchoRxReport(packet);
+  }
 #endif
   if (!is_loon_channel) return;
   if (strcmp(sender, _prefs.node_name) == 0) return;
@@ -1796,6 +1900,10 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
   loon_last_clock_epoch = 0;
   loon_last_clock_check_at = 0;
   loon_clock_was_valid = false;
+#if defined(LOON_V4_ECHO_RX_TEST)
+  resetLoonEchoRxPrefs();
+  loon_echo_rx_channel_ready = false;
+#endif
 #if defined(ESP32)
   resetLoonWebhookPrefs();
   loon_webhook_channel_ready = false;
@@ -1816,6 +1924,10 @@ void MyMesh::begin(FILESYSTEM *fs) {
 #ifdef LOON_FIRMWARE
   loadLoonPrefs();
   initLoonChannels();
+#if defined(LOON_V4_ECHO_RX_TEST)
+  loadLoonEchoRxPrefs();
+  initLoonEchoRxChannel();
+#endif
 #if defined(ESP32)
   loadLoonWebhookPrefs();
   initLoonWebhookChannel();
@@ -2190,6 +2302,18 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
     } else if (!strcmp(value, "off") || !strcmp(value, "0")) {
       loon_prefs.help_test = 0; saveLoonPrefs(); strcpy(reply, "OK");
     } else strcpy(reply, "Err - use on|off");
+#if defined(LOON_V4_ECHO_RX_TEST)
+  // TEMPORARY and intentionally omitted from the normal `loon` summary/help.
+  } else if (strncmp(command, "loon.echo.rx", 12) == 0 &&
+             (command[12] == 0 || command[12] == ' ')) {
+    const char* value = command + 12; while (*value == ' ') value++;
+    if (!*value) snprintf(reply, 160, "%s", loon_echo_rx_prefs.enabled ? "on" : "off");
+    else if (!strcmp(value, "on") || !strcmp(value, "1")) {
+      loon_echo_rx_prefs.enabled = 1; saveLoonEchoRxPrefs(); strcpy(reply, "OK");
+    } else if (!strcmp(value, "off") || !strcmp(value, "0")) {
+      loon_echo_rx_prefs.enabled = 0; saveLoonEchoRxPrefs(); strcpy(reply, "OK");
+    } else strcpy(reply, "Err - use on|off");
+#endif
   } else if (strncmp(command, "loon.roll", 9) == 0 && (command[9] == 0 || command[9] == ' ')) {
     const char* value = command + 9; while (*value == ' ') value++;
     if (!*value) snprintf(reply, 160, "%s", loon_prefs.roll_test ? "on" : "off");

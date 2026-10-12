@@ -158,6 +158,15 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   static_assert(sizeof(LoonWebhookPrefs) == 340, "Webhook preferences must remain update-compatible");
   static_assert(offsetof(LoonWebhookPrefs, checksum) == 336,
                 "Webhook preference checksum offset must remain stable");
+  static const uint8_t LOON_WEBHOOK_BLACKLIST_SIZE = 8;
+  struct LoonWebhookBlacklist {
+    uint32_t magic;
+    uint8_t version;
+    uint8_t count;
+    uint8_t reserved[2];
+    char names[LOON_WEBHOOK_BLACKLIST_SIZE][40];
+    uint32_t checksum;
+  } loon_webhook_blacklist;
   static const uint8_t LOON_WEBHOOK_QUEUE_SIZE = 32;
   struct LoonWebhookItem {
     char sender[40];
@@ -172,6 +181,11 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   void loadLoonWebhookPrefs();
   void saveLoonWebhookPrefs();
   uint32_t calcLoonWebhookPrefsChecksum() const;
+  void resetLoonWebhookBlacklist();
+  void loadLoonWebhookBlacklist();
+  void saveLoonWebhookBlacklist();
+  uint32_t calcLoonWebhookBlacklistChecksum() const;
+  bool isLoonWebhookBlacklisted(const char* sender) const;
   void initLoonWebhookChannel();
   void initLoonWifi();
   bool isLoonWebhookChannel(const mesh::GroupChannel& channel) const;

@@ -77,6 +77,9 @@
 #define LOON_WEBHOOK_PREFS_MAGIC      0x4C57484BUL
 #define LOON_WEBHOOK_PREFS_VERSION    1
 #define LOON_WEBHOOK_PREFS_FILE       "/loon_webhook"
+#define LOON_WEBHOOK_BLACKLIST_MAGIC  0x4C57424CUL
+#define LOON_WEBHOOK_BLACKLIST_VERSION 1
+#define LOON_WEBHOOK_BLACKLIST_FILE   "/loon_webhook_bl"
 #define LOON_WEBHOOK_MIN_INTERVAL_MS  200UL
 #define LOON_WEBHOOK_RETRY_DELAY_MS   2000UL
 #define LOON_WIFI_RETRY_DELAY_MS      15000UL
@@ -835,6 +838,55 @@ void MyMesh::saveLoonWebhookPrefs() {
   }
 }
 
+uint32_t MyMesh::calcLoonWebhookBlacklistChecksum() const {
+  return calcLoonChecksum(&loon_webhook_blacklist, offsetof(LoonWebhookBlacklist, checksum));
+}
+
+void MyMesh::resetLoonWebhookBlacklist() {
+  memset(&loon_webhook_blacklist, 0, sizeof(loon_webhook_blacklist));
+  loon_webhook_blacklist.magic = LOON_WEBHOOK_BLACKLIST_MAGIC;
+  loon_webhook_blacklist.version = LOON_WEBHOOK_BLACKLIST_VERSION;
+  loon_webhook_blacklist.checksum = calcLoonWebhookBlacklistChecksum();
+}
+
+void MyMesh::loadLoonWebhookBlacklist() {
+  resetLoonWebhookBlacklist();
+  if (!_fs->exists(LOON_WEBHOOK_BLACKLIST_FILE)) return;
+  File file = _fs->open(LOON_WEBHOOK_BLACKLIST_FILE);
+  if (!file || file.size() != sizeof(loon_webhook_blacklist)) {
+    if (file) file.close();
+    return;
+  }
+  LoonWebhookBlacklist loaded;
+  bool read_ok = file.read(reinterpret_cast<uint8_t*>(&loaded), sizeof(loaded)) == sizeof(loaded);
+  file.close();
+  bool valid = read_ok && loaded.magic == LOON_WEBHOOK_BLACKLIST_MAGIC &&
+               loaded.version == LOON_WEBHOOK_BLACKLIST_VERSION &&
+               loaded.count <= LOON_WEBHOOK_BLACKLIST_SIZE &&
+               loaded.checksum == calcLoonChecksum(&loaded, offsetof(LoonWebhookBlacklist, checksum));
+  for (uint8_t i = 0; valid && i < loaded.count; i++) {
+    valid = loaded.names[i][0] && loaded.names[i][sizeof(loaded.names[i]) - 1] == 0;
+  }
+  if (valid) loon_webhook_blacklist = loaded;
+}
+
+void MyMesh::saveLoonWebhookBlacklist() {
+  loon_webhook_blacklist.checksum = calcLoonWebhookBlacklistChecksum();
+  File file = _fs->open(LOON_WEBHOOK_BLACKLIST_FILE, "w", true);
+  if (file) {
+    file.write(reinterpret_cast<const uint8_t*>(&loon_webhook_blacklist), sizeof(loon_webhook_blacklist));
+    file.close();
+  }
+}
+
+bool MyMesh::isLoonWebhookBlacklisted(const char* sender) const {
+  if (!sender || !sender[0]) return false;
+  for (uint8_t i = 0; i < loon_webhook_blacklist.count; i++) {
+    if (!strcasecmp(sender, loon_webhook_blacklist.names[i])) return true;
+  }
+  return false;
+}
+
 void MyMesh::initLoonWebhookChannel() {
   memset(&loon_webhook_channel, 0, sizeof(loon_webhook_channel));
   loon_webhook_channel_ready = false;
@@ -868,6 +920,7 @@ bool MyMesh::isLoonWebhookChannel(const mesh::GroupChannel& channel) const {
 
 void MyMesh::queueLoonWebhook(const char* sender, const char* body) {
   if (!loon_webhook_prefs.discord_webhook_url[0] || !loon_webhook_channel_ready) return;
+  if (isLoonWebhookBlacklisted(sender)) return;
   if (loon_webhook_count >= LOON_WEBHOOK_QUEUE_SIZE) {
     loon_webhook_head = (uint8_t)((loon_webhook_head + 1) % LOON_WEBHOOK_QUEUE_SIZE);
     loon_webhook_count--;
@@ -1818,6 +1871,7 @@ void MyMesh::begin(FILESYSTEM *fs) {
   initLoonChannels();
 #if defined(ESP32)
   loadLoonWebhookPrefs();
+  loadLoonWebhookBlacklist();
   initLoonWebhookChannel();
   initLoonWifi();
 #endif
@@ -2321,6 +2375,65 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
         StrHelper::strncpy(loon_webhook_prefs.channel_name, normalized, sizeof(loon_webhook_prefs.channel_name));
         loon_webhook_head = loon_webhook_tail = loon_webhook_count = 0;
         saveLoonWebhookPrefs(); initLoonWebhookChannel(); strcpy(reply, "OK");
+      }
+    }
+  } else if (strncmp(command, "wifi.webhook.blacklist", 22) == 0 &&
+             (command[22] == 0 || command[22] == ' ')) {
+    const char* value = command + 22; while (*value == ' ') value++;
+    if (!*value || !strcasecmp(value, "list")) {
+      if (!loon_webhook_blacklist.count) strcpy(reply, "empty");
+      else {
+        size_t used = 0;
+        reply[0] = 0;
+        for (uint8_t i = 0; i < loon_webhook_blacklist.count; i++) {
+          int n = snprintf(reply + used, 160 - used, "%s%s", i ? ", " : "", loon_webhook_blacklist.names[i]);
+          if (n < 0 || (size_t)n >= 160 - used) {
+            snprintf(reply + used, 160 - used, " (+%u)", loon_webhook_blacklist.count - i);
+            break;
+          }
+          used += (size_t)n;
+        }
+      }
+    } else if (!strcasecmp(value, "clear")) {
+      memset(loon_webhook_blacklist.names, 0, sizeof(loon_webhook_blacklist.names));
+      loon_webhook_blacklist.count = 0;
+      saveLoonWebhookBlacklist();
+      strcpy(reply, "OK");
+    } else {
+      bool add = !strncasecmp(value, "add ", 4);
+      bool remove = !strncasecmp(value, "remove ", 7);
+      const char* name_value = add ? value + 4 : (remove ? value + 7 : NULL);
+      while (name_value && *name_value == ' ') name_value++;
+      char name[40];
+      if (!name_value || !*name_value) strcpy(reply, "Err - use add|remove|list|clear");
+      else if (strlen(name_value) >= sizeof(name)) strcpy(reply, "Err - name too long");
+      else {
+        StrHelper::strncpy(name, name_value, sizeof(name));
+        size_t name_len = strlen(name);
+        while (name_len && name[name_len - 1] == ' ') name[--name_len] = 0;
+        int found = -1;
+        for (uint8_t i = 0; i < loon_webhook_blacklist.count; i++) {
+          if (!strcasecmp(name, loon_webhook_blacklist.names[i])) { found = i; break; }
+        }
+        if (!name[0]) strcpy(reply, "Err - name required");
+        else if (add && found >= 0) strcpy(reply, "OK - already present");
+        else if (add && loon_webhook_blacklist.count >= LOON_WEBHOOK_BLACKLIST_SIZE) strcpy(reply, "Err - list full");
+        else if (add) {
+          StrHelper::strncpy(loon_webhook_blacklist.names[loon_webhook_blacklist.count++], name,
+                             sizeof(loon_webhook_blacklist.names[0]));
+          saveLoonWebhookBlacklist();
+          strcpy(reply, "OK");
+        } else if (found < 0) strcpy(reply, "Err - name not found");
+        else {
+          for (uint8_t i = (uint8_t)found; i + 1 < loon_webhook_blacklist.count; i++) {
+            memcpy(loon_webhook_blacklist.names[i], loon_webhook_blacklist.names[i + 1],
+                   sizeof(loon_webhook_blacklist.names[i]));
+          }
+          memset(loon_webhook_blacklist.names[--loon_webhook_blacklist.count], 0,
+                 sizeof(loon_webhook_blacklist.names[0]));
+          saveLoonWebhookBlacklist();
+          strcpy(reply, "OK");
+        }
       }
     }
   } else if (strncmp(command, "wifi.webhook", 12) == 0 &&

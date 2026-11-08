@@ -63,10 +63,6 @@ struct RepeaterStats {
   uint32_t n_recv_errors;
 };
 
-#ifndef MAX_CLIENTS
-  #define MAX_CLIENTS           32
-#endif
-
 struct NeighbourInfo {
   mesh::Identity id;
   uint32_t advert_timestamp;
@@ -75,11 +71,11 @@ struct NeighbourInfo {
 };
 
 #ifndef FIRMWARE_BUILD_DATE
-  #define FIRMWARE_BUILD_DATE   "14 Aug 2026"
+  #define FIRMWARE_BUILD_DATE   "15 Oct 2026"
 #endif
 
 #ifndef FIRMWARE_VERSION
-  #define FIRMWARE_VERSION   "v1.17.1"
+  #define FIRMWARE_VERSION   "v1.18.0"
 #endif
 
 #define FIRMWARE_ROLE "repeater"
@@ -305,7 +301,9 @@ public:
   uint64_t getUptimeSeconds() const { return uptime_millis / 1000ULL; }
   uint8_t getLoonBusyPercent() const { return loon_busy_percent; }
 #endif
-
+  bool isHiddenNode() const {
+    return _prefs.advert_interval == 0 && _prefs.flood_advert_interval == 0;
+  }
   void savePrefs() override {
     _cli.savePrefs(_fs);
   }

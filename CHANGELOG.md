@@ -3,7 +3,7 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
-## 1.18.0-L1 - 2026-11-07
+## 1.18.0-L1 - 2026-11-08
 
 - Update the firmware base to upstream MeshCore v1.18.0 while retaining Loon's
   repeater bot and webhook controls across all supported targets.

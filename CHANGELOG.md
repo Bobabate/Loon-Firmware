@@ -3,6 +3,10 @@
 All notable Loon-specific changes are recorded here. Upstream MeshCore changes
 are tracked in the upstream repository.
 
+## 1.18.0-L2 - 2026-11-24
+
+- Maintenance release across all supported board profiles.
+
 ## 1.18.0-L1 - 2026-11-08
 
 - Update the firmware base to upstream MeshCore v1.18.0 while retaining Loon's

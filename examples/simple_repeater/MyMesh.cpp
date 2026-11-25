@@ -881,8 +881,14 @@ void MyMesh::saveLoonWebhookBlacklist() {
 
 bool MyMesh::isLoonWebhookBlacklisted(const char* sender) const {
   if (!sender || !sender[0]) return false;
+  const size_t sender_len = strlen(sender);
   for (uint8_t i = 0; i < loon_webhook_blacklist.count; i++) {
-    if (!strcasecmp(sender, loon_webhook_blacklist.names[i])) return true;
+    const char* name = loon_webhook_blacklist.names[i];
+    const size_t name_len = strlen(name);
+    if (!name_len || name_len > sender_len) continue;
+    for (size_t offset = 0; offset <= sender_len - name_len; offset++) {
+      if (!strncasecmp(sender + offset, name, name_len)) return true;
+    }
   }
   return false;
 }
